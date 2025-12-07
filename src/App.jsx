@@ -262,7 +262,7 @@ const ColorFlashcard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-8">
-      <div className="bg-white rounded-lg shadow-xl p-12 max-w-3xl w-full">
+      <div className="bg-white rounded-lg shadow-xl py-6 px-3 max-w-3xl w-full">
         <div className="mb-8">
           <div className="flex items-center justify-center gap-8 mb-6">
             <div className="text-2xl font-bold text-gray-700">
