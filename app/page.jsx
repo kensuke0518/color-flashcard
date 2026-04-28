@@ -1,5 +1,8 @@
-import { redirect } from 'next/navigation'
-
 export default function Home() {
-  redirect('/quiz')
+  return (
+    <main>
+      <meta httpEquiv="refresh" content="0; url=/quiz/" />
+      <a href="/quiz/">`/quiz/` に移動</a>
+    </main>
+  )
 }
