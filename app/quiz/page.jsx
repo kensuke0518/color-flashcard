@@ -395,7 +395,7 @@ export default function ColorFlashcard() {
           </div>
 
           <button onClick={startQuiz}
-            className="btn-gradient-start w-full py-4 text-white text-xl font-bold rounded-lg shadow-md flex items-center justify-center gap-2 mb-6 transition-[filter]">
+            className="w-full py-4 bg-blue-600 text-white text-xl font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center gap-2 mb-6">
             <span>🚀</span> クイズ開始
           </button>
 
