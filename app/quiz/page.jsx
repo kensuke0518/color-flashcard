@@ -376,8 +376,8 @@ export default function ColorFlashcard() {
           {/* Header */}
           <div className="text-center mb-6">
             <h1 className={`text-4xl font-bold mb-2 ${dm ? 'text-purple-300' : 'text-purple-800'}`}>カラーフラッシュカード</h1>
-            <p className={`text-sm leading-relaxed ${t.textSecondary}`}>
-              慣用色名をフラッシュカードで効率よく暗記。色パッチを見て名前を答える・4択から選ぶ・説明文から色を当てる、3つのモードで学習できます。色彩検定2級や1級2次の勉強にお役立ていただけます！
+            <p className={`text-xs leading-relaxed ${t.textSecondary}`}>
+              慣用色名をフラッシュカードで効率よく暗記。色彩検定2級や1級2次の勉強にお役立ていただけます！
             </p>
           </div>
 
