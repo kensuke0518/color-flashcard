@@ -386,11 +386,11 @@ export default function ColorFlashcard() {
             <p className={`text-sm font-medium mb-1 ${t.sectionTitle}`}>現在の設定</p>
             <p className={`text-2xl font-bold ${t.sectionValue}`}>{selectedGroup === 'all' ? '全グループ' : selectedGroup}</p>
             <p className={t.sectionSub}>
-              × {quizMode === 'all' ? '全問' : `${quizMode}問`}
+              {{ flashcard: '色名解答', choice: '四択解答', description: '説明から解答' }[quizType]}
+              {' / × '}
+              {quizMode === 'all' ? '全問' : `${quizMode}問`}
               {' / '}
               {timerSetting === 0 ? '無制限' : timerSetting === 'custom' ? `${customTimerVal || '?'}秒` : `${timerSetting}秒`}
-              {' / '}
-              {{ flashcard: '色名解答', choice: '四択解答', description: '説明から解答' }[quizType]}
             </p>
           </div>
 
