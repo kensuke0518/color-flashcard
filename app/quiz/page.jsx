@@ -1,30 +1,60 @@
 'use client'
 
-import React, { useState, useMemo, useEffect } from 'react'
+import React, { useState, useMemo, useEffect, useRef } from 'react'
 import colorsData from '../../src/colors.json'
 
 export default function ColorFlashcard() {
   const colors = colorsData
 
-  const [darkMode, setDarkMode] = useState(false)
-  const [quizType, setQuizType] = useState('flashcard') // 'flashcard' | 'choice' | 'description'
-  const [gameState, setGameState] = useState('home')    // 'home' | 'quiz' | 'result'
-  const [quizMode, setQuizMode] = useState(10)
+  const [darkMode,      setDarkMode]      = useState(false)
+  const [quizType,      setQuizType]      = useState('flashcard') // 'flashcard' | 'choice' | 'description'
+  const [gameState,     setGameState]     = useState('home')      // 'home' | 'quiz' | 'result'
+  const [quizMode,      setQuizMode]      = useState(10)
   const [selectedGroup, setSelectedGroup] = useState('all')
   const [questionOrder, setQuestionOrder] = useState([])
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [showAnswer, setShowAnswer] = useState(false)
-  const [results, setResults] = useState([])
-  const [rankingTab, setRankingTab] = useState('current')
-  // 四択モード用
-  const [choiceOptions, setChoiceOptions] = useState([])
-  const [selectedChoice, setSelectedChoice] = useState(null)
-  const [isAnswered, setIsAnswered] = useState(false)
+  const [currentIndex,  setCurrentIndex]  = useState(0)
+  const [showAnswer,    setShowAnswer]    = useState(false)
+  const [results,       setResults]       = useState([])
+  const [rankingTab,    setRankingTab]    = useState('current')
+  // 四択 / 説明
+  const [choiceOptions,  setChoiceOptions]  = useState([])
+  const [selectedChoice, setSelectedChoice] = useState(null) // null=未選択, -1=時間切れ, id=選択済
+  const [isAnswered,     setIsAnswered]     = useState(false)
+  // タイマー設定
+  const [timerSetting,   setTimerSetting]   = useState(0)    // 0=無限, 5|10|20|'custom'
+  const [customTimerVal, setCustomTimerVal] = useState('15')
+  const [timeLeft,       setTimeLeft]       = useState(null)
 
+  const timerRef = useRef(null)
+
+  // タイマー有効秒数
+  const effectiveSecs = timerSetting === 'custom'
+    ? Math.max(1, parseInt(customTimerVal) || 10)
+    : timerSetting
+
+  const clearTimer = () => {
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+  }
+
+  const startCountdown = (secs) => {
+    clearTimer()
+    if (!secs) { setTimeLeft(null); return }
+    setTimeLeft(secs)
+    timerRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(timerRef.current)
+          timerRef.current = null
+          return 0
+        }
+        return prev - 1
+      })
+    }, 1000)
+  }
+
+  // ダークモード復元
   useEffect(() => {
-    try {
-      if (localStorage.getItem('darkMode') === 'true') setDarkMode(true)
-    } catch {}
+    try { if (localStorage.getItem('darkMode') === 'true') setDarkMode(true) } catch {}
   }, [])
 
   const toggleDarkMode = () => {
@@ -35,44 +65,93 @@ export default function ColorFlashcard() {
     })
   }
 
+  // 問題が変わったらタイマーをリスタート
+  useEffect(() => {
+    if (gameState !== 'quiz') return
+    startCountdown(effectiveSecs)
+    return clearTimer
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentIndex, gameState])
+
+  // フラッシュカード: 回答を見たらタイマー停止
+  useEffect(() => {
+    if (showAnswer) clearTimer()
+  }, [showAnswer])
+
+  // 四択/説明: 選択済みになったらタイマー停止
+  useEffect(() => {
+    if (isAnswered) clearTimer()
+  }, [isAnswered])
+
+  // 時間切れ処理
+  useEffect(() => {
+    if (timeLeft !== 0 || !effectiveSecs || gameState !== 'quiz') return
+    const q = questionOrder[currentIndex]
+    if (!q) return
+
+    if (quizType === 'flashcard') {
+      if (!showAnswer) {
+        const result = { id: q.id, answer: q.name, userAnswer: '×', timestamp: new Date().toISOString() }
+        setResults(prev => [...prev, result])
+        try { localStorage.setItem(`result:${Date.now()}_${q.id}`, JSON.stringify(result)) } catch {}
+        if (currentIndex < questionOrder.length - 1) {
+          setCurrentIndex(ci => ci + 1)
+          setShowAnswer(false)
+        } else {
+          setGameState('result')
+          setRankingTab('current')
+        }
+      }
+    } else {
+      if (!isAnswered) {
+        const result = { id: q.id, answer: q.name, userAnswer: '×', timestamp: new Date().toISOString() }
+        setResults(prev => [...prev, result])
+        try { localStorage.setItem(`result:${Date.now()}_${q.id}`, JSON.stringify(result)) } catch {}
+        setSelectedChoice(-1) // -1 = 時間切れ
+        setIsAnswered(true)
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [timeLeft])
+
   const colorGroups = useMemo(() => {
     const groups = new Set(colors.map(c => c.colorgroup))
     return ['all', ...Array.from(groups).sort()]
   }, [colors])
 
-  // --- Theme helpers ---
+  // --- Theme ---
   const dm = darkMode
   const t = {
-    screenBg:       dm ? 'bg-gray-900'      : 'bg-gradient-to-br from-purple-50 to-blue-50',
-    cardBg:         dm ? 'bg-gray-800'      : 'bg-white',
-    cardBorder:     dm ? 'border-gray-700'  : 'border-gray-200',
-    textPrimary:    dm ? 'text-white'       : 'text-gray-900',
-    textSecondary:  dm ? 'text-gray-300'    : 'text-gray-500',
-    textMuted:      dm ? 'text-gray-500'    : 'text-gray-400',
-    tabBg:          dm ? 'bg-gray-700'      : 'bg-gray-100',
-    tabActive:      dm ? 'bg-gray-500 text-white shadow' : 'bg-white text-purple-700 shadow-sm',
-    tabInactive:    dm ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-600' : 'text-gray-500 hover:text-gray-700',
-    rowBg:          dm ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200',
-    rowHover:       dm ? 'hover:bg-gray-600' : 'hover:bg-gray-100',
-    sectionBg:      dm ? 'bg-gray-700'      : 'bg-blue-50',
-    sectionTitle:   dm ? 'text-blue-300'    : 'text-blue-800',
-    sectionValue:   dm ? 'text-white'       : 'text-blue-900',
-    sectionSub:     dm ? 'text-blue-200'    : 'text-blue-700',
-    answerBg:       dm ? 'bg-gray-700 border-gray-500' : 'bg-purple-50 border-purple-200',
-    answerTitle:    dm ? 'text-white'       : 'text-purple-900',
-    answerLabel:    dm ? 'text-gray-300'    : 'text-gray-700',
-    answerValue:    dm ? 'text-gray-300'    : 'text-gray-600',
-    answerBorder:   dm ? 'border-gray-600'  : 'border-purple-100',
-    progressBg:     dm ? 'bg-gray-600'      : 'bg-gray-200',
-    groupHeader:    dm ? 'bg-purple-900 text-purple-200' : 'bg-purple-100 text-purple-800',
-    groupSubText:   dm ? 'text-purple-300'  : 'text-purple-600',
-    btnSecondary:   dm ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
-    btnClear:       dm ? 'text-gray-600 hover:text-red-400' : 'text-gray-400 hover:text-red-500',
+    screenBg:     dm ? 'bg-gray-900'     : 'bg-gradient-to-br from-purple-50 to-blue-50',
+    cardBg:       dm ? 'bg-gray-800'     : 'bg-white',
+    cardBorder:   dm ? 'border-gray-700' : 'border-gray-200',
+    textPrimary:  dm ? 'text-white'      : 'text-gray-900',
+    textSecondary:dm ? 'text-gray-300'   : 'text-gray-500',
+    textMuted:    dm ? 'text-gray-500'   : 'text-gray-400',
+    tabBg:        dm ? 'bg-gray-700'     : 'bg-gray-100',
+    tabActive:    dm ? 'bg-gray-500 text-white shadow' : 'bg-white text-purple-700 shadow-sm',
+    tabInactive:  dm ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-600' : 'text-gray-500 hover:text-gray-700',
+    rowBg:        dm ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200',
+    rowHover:     dm ? 'hover:bg-gray-600' : 'hover:bg-gray-100',
+    sectionBg:    dm ? 'bg-gray-700'     : 'bg-blue-50',
+    sectionTitle: dm ? 'text-blue-300'   : 'text-blue-800',
+    sectionValue: dm ? 'text-white'      : 'text-blue-900',
+    sectionSub:   dm ? 'text-blue-200'   : 'text-blue-700',
+    answerBg:     dm ? 'bg-gray-700 border-gray-500' : 'bg-purple-50 border-purple-200',
+    answerTitle:  dm ? 'text-white'      : 'text-purple-900',
+    answerLabel:  dm ? 'text-gray-300'   : 'text-gray-700',
+    answerValue:  dm ? 'text-gray-300'   : 'text-gray-600',
+    answerBorder: dm ? 'border-gray-600' : 'border-purple-100',
+    progressBg:   dm ? 'bg-gray-600'     : 'bg-gray-200',
+    groupHeader:  dm ? 'bg-purple-900 text-purple-200' : 'bg-purple-100 text-purple-800',
+    groupSubText: dm ? 'text-purple-300' : 'text-purple-600',
+    btnSecondary: dm ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
+    btnClear:     dm ? 'text-gray-600 hover:text-red-400' : 'text-gray-400 hover:text-red-500',
+    inputBorder:  dm ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800',
     groupBtn: (active) => active
       ? dm ? 'bg-purple-800 border-purple-500 text-purple-200' : 'bg-purple-100 border-purple-500 text-purple-700'
       : dm ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50',
     choiceBtn: (state) => {
-      // state: 'default' | 'correct' | 'wrong' | 'dim'
       if (state === 'correct') return 'bg-green-600 border-green-500 text-white'
       if (state === 'wrong')   return 'bg-red-600 border-red-500 text-white'
       if (state === 'dim')     return dm
@@ -84,7 +163,30 @@ export default function ColorFlashcard() {
     },
   }
 
-  // --- Dark mode toggle button ---
+  // --- 円形タイマー ---
+  const TimerRing = ({ left, total }) => {
+    if (!total || left === null) return null
+    const r = 22
+    const circ = 2 * Math.PI * r
+    const pct = Math.max(0, left / total)
+    const offset = circ * (1 - pct)
+    const color = pct > 0.5 ? '#22c55e' : pct > 0.2 ? '#f97316' : '#ef4444'
+    const trackColor = dm ? '#374151' : '#e5e7eb'
+    return (
+      <div className="relative flex items-center justify-center w-14 h-14 flex-shrink-0">
+        <svg width="56" height="56" className="-rotate-90" viewBox="0 0 56 56">
+          <circle cx="28" cy="28" r={r} fill="none" stroke={trackColor} strokeWidth="4" />
+          <circle cx="28" cy="28" r={r} fill="none" stroke={color} strokeWidth="4"
+            strokeDasharray={circ} strokeDashoffset={offset}
+            style={{ transition: 'stroke-dashoffset 0.8s linear, stroke 0.5s ease' }}
+          />
+        </svg>
+        <span className="absolute text-xs font-bold" style={{ color }}>{left}</span>
+      </div>
+    )
+  }
+
+  // --- ダークモードボタン ---
   const DarkToggle = () => (
     <button
       onClick={toggleDarkMode}
@@ -101,49 +203,39 @@ export default function ColorFlashcard() {
   const getStatistics = () => {
     const stats = {}
     try {
-      Object.keys(localStorage)
-        .filter(k => k.startsWith('result:'))
-        .forEach(k => {
-          const d = JSON.parse(localStorage.getItem(k))
-          if (!stats[d.id]) {
-            const info = colors.find(c => c.id === d.id)
-            stats[d.id] = { id: d.id, name: d.answer, group: info?.colorgroup ?? 'Unknown', correct: 0, incorrect: 0, total: 0 }
-          }
-          stats[d.id].total++
-          if (d.userAnswer === '○') stats[d.id].correct++
-          else stats[d.id].incorrect++
-        })
+      Object.keys(localStorage).filter(k => k.startsWith('result:')).forEach(k => {
+        const d = JSON.parse(localStorage.getItem(k))
+        if (!stats[d.id]) {
+          const info = colors.find(c => c.id === d.id)
+          stats[d.id] = { id: d.id, name: d.answer, group: info?.colorgroup ?? 'Unknown', correct: 0, incorrect: 0, total: 0 }
+        }
+        stats[d.id].total++
+        if (d.userAnswer === '○') stats[d.id].correct++; else stats[d.id].incorrect++
+      })
     } catch {}
     return Object.values(stats)
   }
 
   const getMistakeRanking = () =>
-    getStatistics()
-      .filter(s => s.incorrect > 0)
-      .sort((a, b) => b.incorrect !== a.incorrect
-        ? b.incorrect - a.incorrect
-        : (a.correct / a.total) - (b.correct / b.total))
+    getStatistics().filter(s => s.incorrect > 0)
+      .sort((a, b) => b.incorrect !== a.incorrect ? b.incorrect - a.incorrect : (a.correct / a.total) - (b.correct / b.total))
 
   const getGroupMistakeRanking = () => {
-    const groupRankings = {}
-    getStatistics().forEach(stat => {
-      if (stat.incorrect === 0) return
-      if (!groupRankings[stat.group]) groupRankings[stat.group] = []
-      groupRankings[stat.group].push(stat)
+    const gr = {}
+    getStatistics().forEach(s => {
+      if (s.incorrect === 0) return
+      if (!gr[s.group]) gr[s.group] = []
+      gr[s.group].push(s)
     })
-    Object.keys(groupRankings).forEach(g => {
-      groupRankings[g].sort((a, b) => b.incorrect !== a.incorrect
-        ? b.incorrect - a.incorrect
-        : (a.correct / a.total) - (b.correct / b.total))
-    })
-    return groupRankings
+    Object.keys(gr).forEach(g => gr[g].sort((a, b) =>
+      b.incorrect !== a.incorrect ? b.incorrect - a.incorrect : (a.correct / a.total) - (b.correct / b.total)))
+    return gr
   }
 
-  // --- 四択: 選択肢生成 ---
-  const generateChoices = (correctColor) => {
-    const wrong = colors.filter(c => c.id !== correctColor.id)
-    const picked = [...wrong].sort(() => Math.random() - 0.5).slice(0, 3)
-    return [...picked, correctColor].sort(() => Math.random() - 0.5)
+  // --- 選択肢生成 ---
+  const generateChoices = (correct) => {
+    const wrong = [...colors.filter(c => c.id !== correct.id)].sort(() => Math.random() - 0.5).slice(0, 3)
+    return [...wrong, correct].sort(() => Math.random() - 0.5)
   }
 
   // --- Navigation ---
@@ -151,14 +243,14 @@ export default function ColorFlashcard() {
     let target = selectedGroup === 'all' ? colors : colors.filter(c => c.colorgroup === selectedGroup)
     let shuffled = [...target].sort(() => Math.random() - 0.5)
     if (quizMode !== 'all') shuffled = shuffled.slice(0, quizMode)
-    if (shuffled.length === 0) { alert('該当する問題がありません'); return }
+    if (!shuffled.length) { alert('該当する問題がありません'); return }
 
     setQuestionOrder(shuffled)
     setCurrentIndex(0)
     setShowAnswer(false)
     setResults([])
     setRankingTab('current')
-    if (quizType === 'choice' || quizType === 'description') {
+    if (quizType !== 'flashcard') {
       setChoiceOptions(generateChoices(shuffled[0]))
       setSelectedChoice(null)
       setIsAnswered(false)
@@ -167,19 +259,22 @@ export default function ColorFlashcard() {
   }
 
   const goToRanking = () => { setRankingTab('mistake'); setGameState('result') }
-  const returnHome  = () => { setGameState('home'); setResults([]) }
+  const returnHome  = () => { clearTimer(); setGameState('home'); setResults([]) }
 
   // --- Flashcard handlers ---
-  const handleShowAnswer = () => setShowAnswer(true)
+  const handleShowAnswer = () => {
+    clearTimer()
+    setShowAnswer(true)
+  }
 
   const saveResult = (question, isCorrect) => {
-    const result = { id: question.id, answer: question.name, userAnswer: isCorrect ? '○' : '×', timestamp: new Date().toISOString() }
-    setResults(prev => [...prev, result])
-    try { localStorage.setItem(`result:${Date.now()}_${question.id}`, JSON.stringify(result)) } catch {}
-    return result
+    const r = { id: question.id, answer: question.name, userAnswer: isCorrect ? '○' : '×', timestamp: new Date().toISOString() }
+    setResults(prev => [...prev, r])
+    try { localStorage.setItem(`result:${Date.now()}_${question.id}`, JSON.stringify(r)) } catch {}
   }
 
   const handleAnswer = (isCorrect) => {
+    clearTimer()
     saveResult(currentQuestion, isCorrect)
     if (currentIndex < questionOrder.length - 1) {
       setCurrentIndex(currentIndex + 1)
@@ -190,9 +285,10 @@ export default function ColorFlashcard() {
     }
   }
 
-  // --- 四択 / 説明から解答 handlers ---
+  // --- 四択 / 説明 handlers ---
   const handleChoiceSelect = (choice) => {
     if (isAnswered) return
+    clearTimer()
     setSelectedChoice(choice.id)
     setIsAnswered(true)
     saveResult(currentQuestion, choice.id === currentQuestion.id)
@@ -237,54 +333,75 @@ export default function ColorFlashcard() {
             <DarkToggle />
           </div>
 
-          {/* Quiz type tab */}
+          {/* クイズタイプ */}
           <div className={`flex ${t.tabBg} p-1 rounded-lg mb-6`}>
             {[
               { value: 'flashcard',   label: '色名解答' },
               { value: 'choice',      label: '四択解答' },
               { value: 'description', label: '説明から解答' },
             ].map(({ value, label }) => (
-              <button
-                key={value}
-                onClick={() => setQuizType(value)}
-                className={`flex-1 py-2 text-xs md:text-sm font-bold rounded-md transition-all ${
-                  quizType === value ? t.tabActive : t.tabInactive
-                }`}
-              >
+              <button key={value} onClick={() => setQuizType(value)}
+                className={`flex-1 py-2 text-xs md:text-sm font-bold rounded-md transition-all ${quizType === value ? t.tabActive : t.tabInactive}`}>
                 {label}
               </button>
             ))}
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 mb-8">
-            {/* Left: settings */}
-            <div className="space-y-6">
+            {/* Left: 設定 */}
+            <div className="space-y-5">
+              {/* 出題数 */}
               <div>
                 <p className={`text-sm font-semibold mb-2 ${t.textSecondary}`}>出題数</p>
                 <div className={`flex ${t.tabBg} p-1 rounded-lg`}>
                   {[{ label: '10問', value: 10 }, { label: '20問', value: 20 }, { label: '全問', value: 'all' }].map(m => (
-                    <button
-                      key={m.label}
-                      onClick={() => setQuizMode(m.value)}
-                      className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
-                        quizMode === m.value ? t.tabActive : t.tabInactive
-                      }`}
-                    >
+                    <button key={m.label} onClick={() => setQuizMode(m.value)}
+                      className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${quizMode === m.value ? t.tabActive : t.tabInactive}`}>
                       {m.label}
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* 解答時間 */}
+              <div>
+                <p className={`text-sm font-semibold mb-2 ${t.textSecondary}`}>解答時間</p>
+                <div className={`flex ${t.tabBg} p-1 rounded-lg mb-2`}>
+                  {[
+                    { label: '無限', value: 0 },
+                    { label: '5秒',  value: 5 },
+                    { label: '10秒', value: 10 },
+                    { label: '20秒', value: 20 },
+                    { label: 'カスタム', value: 'custom' },
+                  ].map(m => (
+                    <button key={m.label} onClick={() => setTimerSetting(m.value)}
+                      className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${timerSetting === m.value ? t.tabActive : t.tabInactive}`}>
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                {timerSetting === 'custom' && (
+                  <div className="flex items-center gap-2 mt-1">
+                    <input
+                      type="number"
+                      min="1"
+                      max="300"
+                      value={customTimerVal}
+                      onChange={e => setCustomTimerVal(e.target.value)}
+                      className={`w-20 px-3 py-1.5 rounded-lg border text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-purple-400 ${t.inputBorder}`}
+                    />
+                    <span className={`text-sm ${t.textSecondary}`}>秒</span>
+                  </div>
+                )}
+              </div>
+
+              {/* 色グループ */}
               <div>
                 <p className={`text-sm font-semibold mb-2 ${t.textSecondary}`}>色グループ</p>
                 <div className="grid grid-cols-3 gap-2">
                   {colorGroups.map(group => (
-                    <button
-                      key={group}
-                      onClick={() => setSelectedGroup(group)}
-                      className={`py-2 px-1 text-xs font-bold rounded-md border transition-all truncate ${t.groupBtn(selectedGroup === group)}`}
-                    >
+                    <button key={group} onClick={() => setSelectedGroup(group)}
+                      className={`py-2 px-1 text-xs font-bold rounded-md border transition-all truncate ${t.groupBtn(selectedGroup === group)}`}>
                       {group === 'all' ? 'すべて' : group}
                     </button>
                   ))}
@@ -292,27 +409,25 @@ export default function ColorFlashcard() {
               </div>
             </div>
 
-            {/* Right: actions */}
+            {/* Right: アクション */}
             <div className="flex flex-col justify-center space-y-4">
               <div className={`${t.sectionBg} p-4 rounded-lg text-center mb-2`}>
                 <p className={`text-sm font-medium mb-1 ${t.sectionTitle}`}>現在の設定</p>
-                <p className={`text-2xl font-bold ${t.sectionValue}`}>
-                  {selectedGroup === 'all' ? '全グループ' : selectedGroup}
+                <p className={`text-2xl font-bold ${t.sectionValue}`}>{selectedGroup === 'all' ? '全グループ' : selectedGroup}</p>
+                <p className={t.sectionSub}>
+                  × {quizMode === 'all' ? '全問' : `${quizMode}問`}
+                  {' / '}
+                  {timerSetting === 0 ? '無制限' : timerSetting === 'custom' ? `${customTimerVal || '?'}秒` : `${timerSetting}秒`}
                 </p>
-                <p className={t.sectionSub}>× {quizMode === 'all' ? '全問' : `${quizMode}問`}</p>
               </div>
 
-              <button
-                onClick={startQuiz}
-                className="w-full py-4 bg-blue-600 text-white text-xl font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center gap-2"
-              >
+              <button onClick={startQuiz}
+                className="w-full py-4 bg-blue-600 text-white text-xl font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center gap-2">
                 <span>🚀</span> クイズ開始
               </button>
 
-              <button
-                onClick={goToRanking}
-                className="w-full py-3 bg-purple-600 text-white text-lg font-bold rounded-lg hover:bg-purple-700 transition-colors shadow-md flex items-center justify-center gap-2"
-              >
+              <button onClick={goToRanking}
+                className="w-full py-3 bg-purple-600 text-white text-lg font-bold rounded-lg hover:bg-purple-700 transition-colors shadow-md flex items-center justify-center gap-2">
                 <span>🏆</span> ランキング
               </button>
             </div>
@@ -339,27 +454,20 @@ export default function ColorFlashcard() {
             <DarkToggle />
           </div>
 
-          {/* Tabs */}
           <div className={`flex flex-wrap gap-2 mb-6 p-1 ${t.tabBg} rounded-lg`}>
             {[
               { id: 'current', label: '今回の結果' },
               { id: 'mistake', label: '総合ワースト' },
               { id: 'group',   label: 'グループ別' },
             ].map(tab => (
-              <button
-                key={tab.id}
-                onClick={() => setRankingTab(tab.id)}
-                className={`flex-1 py-2 px-3 text-sm md:text-base font-bold rounded-md transition-all ${
-                  rankingTab === tab.id ? t.tabActive : t.tabInactive
-                }`}
-              >
+              <button key={tab.id} onClick={() => setRankingTab(tab.id)}
+                className={`flex-1 py-2 px-3 text-sm md:text-base font-bold rounded-md transition-all ${rankingTab === tab.id ? t.tabActive : t.tabInactive}`}>
                 {tab.label}
               </button>
             ))}
           </div>
 
           <div className="min-h-[300px]">
-            {/* Current results */}
             {rankingTab === 'current' && (
               <div className="mb-8">
                 <h3 className={`text-xl font-semibold mb-4 ${t.textPrimary}`}>今回の結果</h3>
@@ -379,9 +487,7 @@ export default function ColorFlashcard() {
                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                       {results.map((result, i) => (
                         <div key={i} className={`flex items-center justify-between p-3 ${t.rowBg} rounded border`}>
-                          <span className={`font-medium text-sm md:text-base ${t.textPrimary}`}>
-                            Q{result.id}: {result.answer}
-                          </span>
+                          <span className={`font-medium text-sm md:text-base ${t.textPrimary}`}>Q{result.id}: {result.answer}</span>
                           <span className={`text-xl md:text-2xl font-bold ${result.userAnswer === '○' ? 'text-green-500' : 'text-red-500'}`}>
                             {result.userAnswer}
                           </span>
@@ -393,7 +499,6 @@ export default function ColorFlashcard() {
               </div>
             )}
 
-            {/* Mistake ranking */}
             {rankingTab === 'mistake' && (
               <div className="mb-8">
                 <h3 className={`text-xl font-semibold mb-4 ${t.textPrimary}`}>間違いが多い色 TOP20（全体）</h3>
@@ -411,9 +516,7 @@ export default function ColorFlashcard() {
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-center mb-1">
                               <span className={`font-bold truncate mr-2 ${t.textPrimary}`}>{stat.name}</span>
-                              <span className={`text-xs px-2 py-0.5 rounded-full ${dm ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>
-                                {stat.group}
-                              </span>
+                              <span className={`text-xs px-2 py-0.5 rounded-full ${dm ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-600'}`}>{stat.group}</span>
                             </div>
                             <div className={`text-xs flex items-center gap-2 ${t.textSecondary}`}>
                               <div className={`flex-1 h-2 ${t.progressBg} rounded-full overflow-hidden`}>
@@ -434,7 +537,6 @@ export default function ColorFlashcard() {
               </div>
             )}
 
-            {/* Group ranking */}
             {rankingTab === 'group' && (
               <div className="mb-8">
                 <h3 className={`text-xl font-semibold mb-4 ${t.textPrimary}`}>グループ別 間違いTOP10</h3>
@@ -442,38 +544,34 @@ export default function ColorFlashcard() {
                   <div className={`text-center py-12 ${t.textSecondary}`}>まだ学習データ（間違い）がありません</div>
                 ) : (
                   <div className="space-y-8 max-h-[500px] overflow-y-auto pr-2">
-                    {colorGroups
-                      .filter(g => g !== 'all' && groupMistakes[g])
-                      .map(group => {
-                        const mistakes = groupMistakes[group]
-                        return (
-                          <div key={group} className={`border ${t.cardBorder} rounded-lg overflow-hidden`}>
-                            <div className={`${t.groupHeader} px-4 py-2 font-bold border-b ${t.cardBorder} flex justify-between`}>
-                              <span>{group}</span>
-                              <span className={`text-sm font-normal ${t.groupSubText}`}>間違い: {mistakes.length}色</span>
-                            </div>
-                            <div className={`${dm ? 'bg-gray-750' : 'bg-gray-50'} p-2 space-y-2`}>
-                              {mistakes.slice(0, 10).map((stat, idx) => {
-                                const color = colors.find(c => c.id === stat.id)
-                                const rate  = Math.round((stat.correct / stat.total) * 100)
-                                return (
-                                  <div key={stat.id} className={`flex items-center gap-3 p-2 ${t.cardBg} rounded border ${t.cardBorder} shadow-sm`}>
-                                    <div className={`text-base font-bold w-5 text-center ${t.textMuted}`}>{idx + 1}</div>
-                                    <div className="w-8 h-8 rounded shadow-sm flex-shrink-0 border border-gray-300" style={{ backgroundColor: color?.colorcode }} />
-                                    <div className="flex-1 min-w-0">
-                                      <div className={`font-semibold text-sm truncate ${t.textPrimary}`}>{stat.name}</div>
-                                      <div className={`text-xs ${t.textSecondary}`}>正解率: {rate}%</div>
-                                    </div>
-                                    <div className="text-right">
-                                      <span className="text-lg font-bold text-red-500 block leading-none">×{stat.incorrect}</span>
-                                    </div>
-                                  </div>
-                                )
-                              })}
-                            </div>
+                    {colorGroups.filter(g => g !== 'all' && groupMistakes[g]).map(group => {
+                      const mistakes = groupMistakes[group]
+                      return (
+                        <div key={group} className={`border ${t.cardBorder} rounded-lg overflow-hidden`}>
+                          <div className={`${t.groupHeader} px-4 py-2 font-bold border-b ${t.cardBorder} flex justify-between`}>
+                            <span>{group}</span>
+                            <span className={`text-sm font-normal ${t.groupSubText}`}>間違い: {mistakes.length}色</span>
                           </div>
-                        )
-                      })}
+                          <div className={`${dm ? 'bg-gray-900' : 'bg-gray-50'} p-2 space-y-2`}>
+                            {mistakes.slice(0, 10).map((stat, idx) => {
+                              const color = colors.find(c => c.id === stat.id)
+                              const rate  = Math.round((stat.correct / stat.total) * 100)
+                              return (
+                                <div key={stat.id} className={`flex items-center gap-3 p-2 ${t.cardBg} rounded border ${t.cardBorder} shadow-sm`}>
+                                  <div className={`text-base font-bold w-5 text-center ${t.textMuted}`}>{idx + 1}</div>
+                                  <div className="w-8 h-8 rounded shadow-sm flex-shrink-0 border border-gray-300" style={{ backgroundColor: color?.colorcode }} />
+                                  <div className="flex-1 min-w-0">
+                                    <div className={`font-semibold text-sm truncate ${t.textPrimary}`}>{stat.name}</div>
+                                    <div className={`text-xs ${t.textSecondary}`}>正解率: {rate}%</div>
+                                  </div>
+                                  <span className="text-lg font-bold text-red-500">×{stat.incorrect}</span>
+                                </div>
+                              )
+                            })}
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
               </div>
@@ -501,26 +599,31 @@ export default function ColorFlashcard() {
     return <div className={`text-center p-8 ${t.textPrimary}`}>読み込み中...</div>
   }
 
-  // ---------- 四択 / 説明から解答 共通レイアウト ----------
+  // ---------- 共通ヘッダー ----------
+  const QuizHeader = ({ label }) => (
+    <div className={`flex justify-between items-center mb-4 text-xs md:text-sm ${t.textSecondary}`}>
+      <div>
+        {selectedGroup !== 'all' && <span className="mr-2 font-bold text-purple-500">[{selectedGroup}]</span>}
+        進捗: {currentIndex + 1} / {questionOrder.length}
+      </div>
+      <div className="flex items-center gap-2">
+        <TimerRing left={timeLeft} total={effectiveSecs} />
+        <DarkToggle />
+        <button onClick={returnHome} className="hover:text-red-400 transition-colors ml-1">{label}</button>
+      </div>
+    </div>
+  )
+
+  // ---------- 四択 / 説明から解答 ----------
   if (quizType === 'choice' || quizType === 'description') {
-    const isCorrect = selectedChoice === currentQuestion.id
+    const timedOut  = selectedChoice === -1
+    const isCorrect = !timedOut && selectedChoice === currentQuestion.id
 
     return (
       <div className={`min-h-screen ${t.screenBg} flex items-center justify-center p-4 md:p-8`}>
         <div className={`${t.cardBg} rounded-lg shadow-xl py-6 px-4 max-w-3xl w-full`}>
+          <QuizHeader label="中断" />
 
-          <div className={`flex justify-between items-center mb-4 text-xs md:text-sm ${t.textSecondary}`}>
-            <div>
-              {selectedGroup !== 'all' && <span className="mr-2 font-bold text-purple-500">[{selectedGroup}]</span>}
-              進捗: {currentIndex + 1} / {questionOrder.length}
-            </div>
-            <div className="flex items-center gap-3">
-              <DarkToggle />
-              <button onClick={returnHome} className={`${t.textSecondary} hover:text-red-400 transition-colors`}>中断</button>
-            </div>
-          </div>
-
-          {/* 問題表示 */}
           <div className="flex flex-col items-center mb-6">
             <div className={`text-xl md:text-2xl font-bold mb-4 ${t.textPrimary}`}>第{currentIndex + 1}問</div>
 
@@ -532,10 +635,7 @@ export default function ColorFlashcard() {
             ) : (
               <div className={`w-full max-w-lg rounded-xl border-2 ${t.answerBg} p-5 md:p-6`}>
                 <p className={`text-xs font-semibold mb-3 ${t.textMuted}`}>次の説明に当てはまる色名を選んでください</p>
-                <p className={`text-base md:text-lg leading-relaxed font-medium ${t.answerTitle}`}>
-                  {currentQuestion.feature}
-                </p>
-                {/* 答えた後にカラーパッチも表示 */}
+                <p className={`text-base md:text-lg leading-relaxed font-medium ${t.answerTitle}`}>{currentQuestion.feature}</p>
                 {isAnswered && (
                   <div className="mt-4 flex items-center gap-3">
                     <div className="w-10 h-10 rounded-lg shadow flex-shrink-0 border border-gray-300" style={{ backgroundColor: currentQuestion.colorcode }} />
@@ -550,18 +650,14 @@ export default function ColorFlashcard() {
           <div className="grid grid-cols-2 gap-3 mb-4">
             {choiceOptions.map(choice => {
               let state = 'default'
-              if (isAnswered) {
+              if (isAnswered || timedOut) {
                 if (choice.id === currentQuestion.id) state = 'correct'
                 else if (choice.id === selectedChoice)  state = 'wrong'
                 else state = 'dim'
               }
               return (
-                <button
-                  key={choice.id}
-                  onClick={() => handleChoiceSelect(choice)}
-                  disabled={isAnswered}
-                  className={`w-full py-3 px-4 text-sm md:text-base font-bold rounded-lg border-2 transition-all text-left ${t.choiceBtn(state)}`}
-                >
+                <button key={choice.id} onClick={() => handleChoiceSelect(choice)} disabled={isAnswered}
+                  className={`w-full py-3 px-4 text-sm md:text-base font-bold rounded-lg border-2 transition-all text-left ${t.choiceBtn(state)}`}>
                   {choice.name}
                 </button>
               )
@@ -569,15 +665,17 @@ export default function ColorFlashcard() {
           </div>
 
           {/* フィードバック */}
-          {isAnswered && (
+          {(isAnswered || timedOut) && (
             <div className="mt-2">
               <div className={`text-center text-lg font-bold mb-4 ${isCorrect ? 'text-green-500' : 'text-red-500'}`}>
-                {isCorrect ? '正解！' : `不正解 — 正解は「${currentQuestion.name}」`}
+                {timedOut
+                  ? `⏰ 時間切れ！ — 正解は「${currentQuestion.name}」`
+                  : isCorrect
+                    ? '正解！'
+                    : `不正解 — 正解は「${currentQuestion.name}」`}
               </div>
-              <button
-                onClick={handleChoiceNext}
-                className="w-full py-3 bg-blue-600 text-white text-lg font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md"
-              >
+              <button onClick={handleChoiceNext}
+                className="w-full py-3 bg-blue-600 text-white text-lg font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md">
                 {currentIndex < questionOrder.length - 1 ? '次の問題へ →' : '結果を見る'}
               </button>
             </div>
@@ -587,21 +685,11 @@ export default function ColorFlashcard() {
     )
   }
 
-  // ---------- フラッシュカードモード ----------
+  // ---------- フラッシュカード ----------
   return (
     <div className={`min-h-screen ${t.screenBg} flex items-center justify-center p-4 md:p-8`}>
       <div className={`${t.cardBg} rounded-lg shadow-xl py-6 px-4 max-w-3xl w-full`}>
-
-        <div className={`flex justify-between items-center mb-4 text-xs md:text-sm ${t.textSecondary}`}>
-          <div>
-            {selectedGroup !== 'all' && <span className="mr-2 font-bold text-purple-500">[{selectedGroup}]</span>}
-            進捗: {currentIndex + 1} / {questionOrder.length}
-          </div>
-          <div className="flex items-center gap-3">
-            <DarkToggle />
-            <button onClick={returnHome} className={`${t.textSecondary} hover:text-red-400 transition-colors`}>中断してホームへ</button>
-          </div>
-        </div>
+        <QuizHeader label="中断してホームへ" />
 
         <div className="mb-8">
           <div className="flex flex-col items-center justify-center gap-4 mb-6">
@@ -614,8 +702,8 @@ export default function ColorFlashcard() {
               <h3 className={`text-2xl font-bold mb-4 text-center ${t.answerTitle}`}>{currentQuestion.name}</h3>
               <div className="space-y-2 text-sm md:text-base">
                 {[
-                  { label: 'グループ',  value: currentQuestion.colorgroup },
-                  { label: '系統色名',  value: currentQuestion.keito },
+                  { label: 'グループ',   value: currentQuestion.colorgroup },
+                  { label: '系統色名',   value: currentQuestion.keito },
                   { label: 'マンセル値', value: currentQuestion.munsell },
                 ].map(row => (
                   <div key={row.label} className={`flex border-b ${t.answerBorder} py-1`}>
@@ -632,30 +720,23 @@ export default function ColorFlashcard() {
         </div>
 
         <div className="text-center mb-6">
-          <button
-            onClick={handleShowAnswer}
-            disabled={showAnswer}
+          <button onClick={handleShowAnswer} disabled={showAnswer}
             className={`px-8 py-3 text-lg font-semibold rounded-lg transition-colors w-full md:w-auto ${
               showAnswer ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-md'
-            }`}
-          >
+            }`}>
             回答を見る
           </button>
         </div>
 
         <div className="flex gap-4 justify-center">
           {[
-            { label: '○', isCorrect: true,  cls: 'bg-green-600 text-white hover:bg-green-700 shadow-md' },
-            { label: '×', isCorrect: false, cls: 'bg-red-600 text-white hover:bg-red-700 shadow-md' },
-          ].map(({ label, isCorrect, cls }) => (
-            <button
-              key={label}
-              onClick={() => handleAnswer(isCorrect)}
-              disabled={!showAnswer}
+            { label: '○', correct: true,  cls: 'bg-green-600 text-white hover:bg-green-700 shadow-md' },
+            { label: '×', correct: false, cls: 'bg-red-600 text-white hover:bg-red-700 shadow-md' },
+          ].map(({ label, correct, cls }) => (
+            <button key={label} onClick={() => handleAnswer(correct)} disabled={!showAnswer}
               className={`flex-1 md:flex-none px-8 py-4 text-2xl font-bold rounded-lg transition-colors ${
                 !showAnswer ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : cls
-              }`}
-            >
+              }`}>
               {label}
             </button>
           ))}
