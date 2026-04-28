@@ -364,21 +364,19 @@ export default function ColorFlashcard() {
       <div className={`min-h-screen ${t.screenBg} flex items-center justify-center p-4`}>
         <div className={`${t.cardBg} rounded-lg shadow-xl p-8 max-w-2xl w-full`}>
 
-          {/* ランキングボタン（見出し上） */}
-          <div className="flex justify-end mb-2">
+          {/* 学習データ + ダークモード（見出し上） */}
+          <div className="flex justify-end items-center gap-2 mb-2">
             <button onClick={goToRanking}
               className="w-[100px] py-1.5 bg-purple-600 text-white text-xs font-bold rounded-lg hover:bg-purple-700 transition-colors shadow flex items-center justify-center gap-1">
-              <span>🏆</span> ランキング
+              <span>🏆</span> 学習データ
             </button>
+            <DarkToggle />
           </div>
 
           {/* Header */}
-          <div className="flex items-start justify-between mb-6">
-            <div className="flex-1 text-center">
-              <h1 className={`text-4xl font-bold mb-1 ${dm ? 'text-purple-300' : 'text-purple-800'}`}>色彩検定</h1>
-              <p className={t.textSecondary}>カラーフラッシュカード</p>
-            </div>
-            <DarkToggle />
+          <div className="text-center mb-6">
+            <h1 className={`text-4xl font-bold mb-1 ${dm ? 'text-purple-300' : 'text-purple-800'}`}>色彩検定</h1>
+            <p className={t.textSecondary}>カラーフラッシュカード</p>
           </div>
 
           {/* 現在の設定 + クイズ開始 */}
