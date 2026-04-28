@@ -92,9 +92,6 @@ export default function ColorFlashcard() {
 
     if (quizType === 'flashcard') {
       if (!showAnswer) {
-        const result = { id: q.id, answer: q.name, userAnswer: '×', timestamp: new Date().toISOString() }
-        setResults(prev => [...prev, result])
-        try { localStorage.setItem(`result:${Date.now()}_${q.id}`, JSON.stringify(result)) } catch {}
         setShowAnswer(true)
         setFlashcardTimedOut(true)
       }
@@ -270,17 +267,6 @@ export default function ColorFlashcard() {
   const handleAnswer = (isCorrect) => {
     clearTimer()
     saveResult(currentQuestion, isCorrect)
-    if (currentIndex < questionOrder.length - 1) {
-      setCurrentIndex(currentIndex + 1)
-      setShowAnswer(false)
-      setFlashcardTimedOut(false)
-    } else {
-      setGameState('result')
-      setRankingTab('current')
-    }
-  }
-
-  const handleFlashcardTimedOutNext = () => {
     if (currentIndex < questionOrder.length - 1) {
       setCurrentIndex(currentIndex + 1)
       setShowAnswer(false)
@@ -735,31 +721,22 @@ export default function ColorFlashcard() {
           </button>
         </div>
 
-        {flashcardTimedOut ? (
-          <div>
-            <div className="text-center text-lg font-bold text-red-500 mb-4">
-              ⏰ 時間切れ
-            </div>
-            <button onClick={handleFlashcardTimedOutNext}
-              className="w-full py-3 bg-blue-600 text-white text-lg font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md">
-              {currentIndex < questionOrder.length - 1 ? '次の問題へ →' : '結果を見る'}
-            </button>
-          </div>
-        ) : (
-          <div className="flex gap-4 justify-center">
-            {[
-              { label: '○', correct: true,  cls: 'bg-green-600 text-white hover:bg-green-700 shadow-md' },
-              { label: '×', correct: false, cls: 'bg-red-600 text-white hover:bg-red-700 shadow-md' },
-            ].map(({ label, correct, cls }) => (
-              <button key={label} onClick={() => handleAnswer(correct)} disabled={!showAnswer}
-                className={`flex-1 md:flex-none px-8 py-4 text-2xl font-bold rounded-lg transition-colors ${
-                  !showAnswer ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : cls
-                }`}>
-                {label}
-              </button>
-            ))}
-          </div>
+        {flashcardTimedOut && (
+          <div className="text-center text-sm font-bold text-red-500 mb-3">⏰ 時間切れ</div>
         )}
+        <div className="flex gap-4 justify-center">
+          {[
+            { label: '○', correct: true,  cls: 'bg-green-600 text-white hover:bg-green-700 shadow-md' },
+            { label: '×', correct: false, cls: 'bg-red-600 text-white hover:bg-red-700 shadow-md' },
+          ].map(({ label, correct, cls }) => (
+            <button key={label} onClick={() => handleAnswer(correct)} disabled={!showAnswer}
+              className={`flex-1 md:flex-none px-8 py-4 text-2xl font-bold rounded-lg transition-colors ${
+                !showAnswer ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : cls
+              }`}>
+              {label}
+            </button>
+          ))}
+        </div>
       </div>
     </div>
   )
