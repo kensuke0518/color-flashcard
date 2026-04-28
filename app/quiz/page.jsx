@@ -373,6 +373,22 @@ export default function ColorFlashcard() {
             <DarkToggle />
           </div>
 
+          {/* 現在の設定 + クイズ開始 */}
+          <div className={`${t.sectionBg} p-4 rounded-lg text-center mb-3`}>
+            <p className={`text-sm font-medium mb-1 ${t.sectionTitle}`}>現在の設定</p>
+            <p className={`text-2xl font-bold ${t.sectionValue}`}>{selectedGroup === 'all' ? '全グループ' : selectedGroup}</p>
+            <p className={t.sectionSub}>
+              × {quizMode === 'all' ? '全問' : `${quizMode}問`}
+              {' / '}
+              {timerSetting === 0 ? '無制限' : timerSetting === 'custom' ? `${customTimerVal || '?'}秒` : `${timerSetting}秒`}
+            </p>
+          </div>
+
+          <button onClick={startQuiz}
+            className="w-full py-4 bg-blue-600 text-white text-xl font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center gap-2 mb-6">
+            <span>🚀</span> クイズ開始
+          </button>
+
           {/* クイズタイプ */}
           <div className={`flex ${t.tabBg} p-1 rounded-lg mb-2`}>
             {[
@@ -406,91 +422,71 @@ export default function ColorFlashcard() {
             </div>
           )}
 
-          <div className="grid md:grid-cols-2 gap-8 mb-8">
-            {/* Left: 設定 */}
-            <div className="space-y-5">
-              {/* 出題数 */}
-              <div>
-                <p className={`text-sm font-semibold mb-2 ${t.textSecondary}`}>出題数</p>
-                <div className={`flex ${t.tabBg} p-1 rounded-lg`}>
-                  {[{ label: '10問', value: 10 }, { label: '20問', value: 20 }, { label: '全問', value: 'all' }].map(m => (
-                    <button key={m.label} onClick={() => setQuizMode(m.value)}
-                      className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${quizMode === m.value ? t.tabActive : t.tabInactive}`}>
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 解答時間 */}
-              <div>
-                <p className={`text-sm font-semibold mb-2 ${t.textSecondary}`}>解答時間</p>
-                <div className={`flex ${t.tabBg} p-1 rounded-lg mb-2`}>
-                  {[
-                    { label: '無限', value: 0 },
-                    { label: '5秒',  value: 5 },
-                    { label: '10秒', value: 10 },
-                    { label: '20秒', value: 20 },
-                    { label: 'カスタム', value: 'custom' },
-                  ].map(m => (
-                    <button key={m.label} onClick={() => setTimerSetting(m.value)}
-                      className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${timerSetting === m.value ? t.tabActive : t.tabInactive}`}>
-                      {m.label}
-                    </button>
-                  ))}
-                </div>
-                {timerSetting === 'custom' && (
-                  <div className="flex items-center gap-2 mt-1">
-                    <input
-                      type="number"
-                      min="1"
-                      max="300"
-                      value={customTimerVal}
-                      onChange={e => setCustomTimerVal(e.target.value)}
-                      className={`w-20 px-3 py-1.5 rounded-lg border text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-purple-400 ${t.inputBorder}`}
-                    />
-                    <span className={`text-sm ${t.textSecondary}`}>秒</span>
-                  </div>
-                )}
-              </div>
-
-              {/* 色グループ */}
-              <div>
-                <p className={`text-sm font-semibold mb-2 ${t.textSecondary}`}>色グループ</p>
-                <div className="grid grid-cols-3 gap-2">
-                  {colorGroups.map(group => (
-                    <button key={group} onClick={() => setSelectedGroup(group)}
-                      className={`py-2 px-1 text-xs font-bold rounded-md border transition-all truncate ${t.groupBtn(selectedGroup === group)}`}>
-                      {group === 'all' ? 'すべて' : group}
-                    </button>
-                  ))}
-                </div>
+          {/* 設定 */}
+          <div className="space-y-5 mb-8">
+            {/* 出題数 */}
+            <div>
+              <p className={`text-sm font-semibold mb-2 ${t.textSecondary}`}>出題数</p>
+              <div className={`flex ${t.tabBg} p-1 rounded-lg`}>
+                {[{ label: '10問', value: 10 }, { label: '20問', value: 20 }, { label: '全問', value: 'all' }].map(m => (
+                  <button key={m.label} onClick={() => setQuizMode(m.value)}
+                    className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${quizMode === m.value ? t.tabActive : t.tabInactive}`}>
+                    {m.label}
+                  </button>
+                ))}
               </div>
             </div>
 
-            {/* Right: アクション */}
-            <div className="flex flex-col justify-center space-y-4">
-              <div className={`${t.sectionBg} p-4 rounded-lg text-center mb-2`}>
-                <p className={`text-sm font-medium mb-1 ${t.sectionTitle}`}>現在の設定</p>
-                <p className={`text-2xl font-bold ${t.sectionValue}`}>{selectedGroup === 'all' ? '全グループ' : selectedGroup}</p>
-                <p className={t.sectionSub}>
-                  × {quizMode === 'all' ? '全問' : `${quizMode}問`}
-                  {' / '}
-                  {timerSetting === 0 ? '無制限' : timerSetting === 'custom' ? `${customTimerVal || '?'}秒` : `${timerSetting}秒`}
-                </p>
+            {/* 解答時間 */}
+            <div>
+              <p className={`text-sm font-semibold mb-2 ${t.textSecondary}`}>解答時間</p>
+              <div className={`flex ${t.tabBg} p-1 rounded-lg mb-2`}>
+                {[
+                  { label: '無限', value: 0 },
+                  { label: '5秒',  value: 5 },
+                  { label: '10秒', value: 10 },
+                  { label: '20秒', value: 20 },
+                  { label: 'カスタム', value: 'custom' },
+                ].map(m => (
+                  <button key={m.label} onClick={() => setTimerSetting(m.value)}
+                    className={`flex-1 py-1.5 text-xs font-bold rounded-md transition-all ${timerSetting === m.value ? t.tabActive : t.tabInactive}`}>
+                    {m.label}
+                  </button>
+                ))}
               </div>
+              {timerSetting === 'custom' && (
+                <div className="flex items-center gap-2 mt-1">
+                  <input
+                    type="number"
+                    min="1"
+                    max="300"
+                    value={customTimerVal}
+                    onChange={e => setCustomTimerVal(e.target.value)}
+                    className={`w-20 px-3 py-1.5 rounded-lg border text-sm font-bold text-center focus:outline-none focus:ring-2 focus:ring-purple-400 ${t.inputBorder}`}
+                  />
+                  <span className={`text-sm ${t.textSecondary}`}>秒</span>
+                </div>
+              )}
+            </div>
 
-              <button onClick={startQuiz}
-                className="w-full py-4 bg-blue-600 text-white text-xl font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md flex items-center justify-center gap-2">
-                <span>🚀</span> クイズ開始
-              </button>
-
-              <button onClick={goToRanking}
-                className="w-full py-3 bg-purple-600 text-white text-lg font-bold rounded-lg hover:bg-purple-700 transition-colors shadow-md flex items-center justify-center gap-2">
-                <span>🏆</span> ランキング
-              </button>
+            {/* 色グループ */}
+            <div>
+              <p className={`text-sm font-semibold mb-2 ${t.textSecondary}`}>色グループ</p>
+              <div className="grid grid-cols-3 gap-2">
+                {colorGroups.map(group => (
+                  <button key={group} onClick={() => setSelectedGroup(group)}
+                    className={`py-2 px-1 text-xs font-bold rounded-md border transition-all truncate ${t.groupBtn(selectedGroup === group)}`}>
+                    {group === 'all' ? 'すべて' : group}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
+
+          <button onClick={goToRanking}
+            className="w-full py-3 bg-purple-600 text-white text-lg font-bold rounded-lg hover:bg-purple-700 transition-colors shadow-md flex items-center justify-center gap-2">
+            <span>🏆</span> ランキング
+          </button>
         </div>
       </div>
     )
