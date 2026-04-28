@@ -4,7 +4,7 @@ Cloud CodeとGeminiを使って作成しています。
 
 # 自動デプロイの仕組み
 
-`npm run deploy`  
+`npm run deploy:pages`  
   
 上記を行うとCloudeFlareに自動デプロイされる  
 CloudeFlareとGithubは今回は連携していない  
