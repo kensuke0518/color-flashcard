@@ -1,46 +1,42 @@
-import React, { useState, useMemo } from 'react';
-import colorsData from './colors.json';
+'use client'
+
+import React, { useState, useMemo } from 'react'
+import colorsData from '../../src/colors.json'
 
 const ColorFlashcard = () => {
-  const colors = colorsData;
+  const colors = colorsData
 
   // 画面の状態管理: 'home' | 'quiz' | 'result'
-  const [gameState, setGameState] = useState('home');
-  
+  const [gameState, setGameState] = useState('home')
+
   // 出題数モード: 10, 20, 'all'
-  const [quizMode, setQuizMode] = useState(10);
+  const [quizMode, setQuizMode] = useState(10)
 
   // 色グループ選択: 'all' または 'Red', 'Blue' など
-  const [selectedGroup, setSelectedGroup] = useState('all');
+  const [selectedGroup, setSelectedGroup] = useState('all')
 
-  const [questionOrder, setQuestionOrder] = useState([]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [results, setResults] = useState([]);
-  
+  const [questionOrder, setQuestionOrder] = useState([])
+  const [currentIndex, setCurrentIndex] = useState(0)
+  const [showAnswer, setShowAnswer] = useState(false)
+  const [results, setResults] = useState([])
+
   // 結果画面の表示タブ: 'current' | 'mistake' | 'group'
-  const [rankingTab, setRankingTab] = useState('current');
+  const [rankingTab, setRankingTab] = useState('current')
 
-  // 色グループのリストを生成（重複排除）
   const colorGroups = useMemo(() => {
-    const groups = new Set(colors.map(c => c.colorgroup));
-    // 表示順序を整えるためにアルファベット順にソートしても良いですが、
-    // ここではセットから配列に戻すだけにします
-    return ['all', ...Array.from(groups).sort()];
-  }, [colors]);
+    const groups = new Set(colors.map(c => c.colorgroup))
+    return ['all', ...Array.from(groups).sort()]
+  }, [colors])
 
-  // localStorageから統計データを取得
   const getStatistics = () => {
-    const stats = {};
-    
+    const stats = {}
     try {
       Object.keys(localStorage)
         .filter(key => key.startsWith('result:'))
         .forEach(key => {
-          const data = JSON.parse(localStorage.getItem(key));
+          const data = JSON.parse(localStorage.getItem(key))
           if (!stats[data.id]) {
-            // 色データからグループ情報を補完するために検索
-            const colorInfo = colors.find(c => c.id === data.id);
+            const colorInfo = colors.find(c => c.id === data.id)
             stats[data.id] = {
               id: data.id,
               name: data.answer,
@@ -48,115 +44,89 @@ const ColorFlashcard = () => {
               correct: 0,
               incorrect: 0,
               total: 0
-            };
+            }
           }
-          stats[data.id].total++;
+          stats[data.id].total++
           if (data.userAnswer === '○') {
-            stats[data.id].correct++;
+            stats[data.id].correct++
           } else {
-            stats[data.id].incorrect++;
+            stats[data.id].incorrect++
           }
-        });
+        })
     } catch (error) {
-      console.error('Error loading statistics:', error);
+      console.error('Error loading statistics:', error)
     }
+    return Object.values(stats)
+  }
 
-    return Object.values(stats);
-  };
-
-  // 全体の間違いが多い順にソート
   const getMistakeRanking = () => {
-    const stats = getStatistics();
+    const stats = getStatistics()
     return stats
       .filter(s => s.incorrect > 0)
       .sort((a, b) => {
-        if (b.incorrect !== a.incorrect) return b.incorrect - a.incorrect;
-        const rateA = a.correct / a.total;
-        const rateB = b.correct / b.total;
-        return rateA - rateB;
-      });
-  };
+        if (b.incorrect !== a.incorrect) return b.incorrect - a.incorrect
+        const rateA = a.correct / a.total
+        const rateB = b.correct / b.total
+        return rateA - rateB
+      })
+  }
 
-  // グループごとの間違いランキングを生成する関数
   const getGroupMistakeRanking = () => {
-    const stats = getStatistics();
-    const groupRankings = {};
-
-    // 1. グループごとにデータを分ける
+    const stats = getStatistics()
+    const groupRankings = {}
     stats.forEach(stat => {
-      // 間違いが0回のものはランキングに含めない
-      if (stat.incorrect === 0) return;
-
-      const group = stat.group;
+      if (stat.incorrect === 0) return
+      const group = stat.group
       if (!groupRankings[group]) {
-        groupRankings[group] = [];
+        groupRankings[group] = []
       }
-      groupRankings[group].push(stat);
-    });
-
-    // 2. 各グループ内でソートする
+      groupRankings[group].push(stat)
+    })
     Object.keys(groupRankings).forEach(group => {
       groupRankings[group].sort((a, b) => {
-        // 間違い数が多い順
-        if (b.incorrect !== a.incorrect) return b.incorrect - a.incorrect;
-        // 正答率が低い順
-        return (a.correct / a.total) - (b.correct / b.total);
-      });
-    });
+        if (b.incorrect !== a.incorrect) return b.incorrect - a.incorrect
+        return (a.correct / a.total) - (b.correct / b.total)
+      })
+    })
+    return groupRankings
+  }
 
-    return groupRankings;
-  };
-
-  // --- ナビゲーション関数 ---
-
-  // クイズを開始する
   const startQuiz = () => {
-    // 1. まずグループでフィルタリング
-    let targetColors = colors;
+    let targetColors = colors
     if (selectedGroup !== 'all') {
-      targetColors = colors.filter(c => c.colorgroup === selectedGroup);
+      targetColors = colors.filter(c => c.colorgroup === selectedGroup)
     }
-
-    // 2. シャッフル
-    let shuffled = [...targetColors].sort(() => Math.random() - 0.5);
-
-    // 3. モードに応じて出題数を制限
+    let shuffled = [...targetColors].sort(() => Math.random() - 0.5)
     if (quizMode !== 'all') {
-      shuffled = shuffled.slice(0, quizMode);
+      shuffled = shuffled.slice(0, quizMode)
     }
-
     if (shuffled.length === 0) {
-      alert('該当する問題がありません');
-      return;
+      alert('該当する問題がありません')
+      return
     }
+    setQuestionOrder(shuffled)
+    setCurrentIndex(0)
+    setShowAnswer(false)
+    setResults([])
+    setRankingTab('current')
+    setGameState('quiz')
+  }
 
-    setQuestionOrder(shuffled);
-    setCurrentIndex(0);
-    setShowAnswer(false);
-    setResults([]);
-    setRankingTab('current'); // タブをリセット
-    setGameState('quiz');
-  };
-
-  // ランキング画面へ直接移動
   const goToRanking = () => {
-    setRankingTab('mistake'); // ランキングタブをデフォルトに
-    setGameState('result');
-  };
+    setRankingTab('mistake')
+    setGameState('result')
+  }
 
-  // ホームに戻る
   const returnHome = () => {
-    setGameState('home');
-    setResults([]);
-  };
+    setGameState('home')
+    setResults([])
+  }
 
-  // --- クイズロジック ---
-
-  const currentQuestion = questionOrder[currentIndex];
+  const currentQuestion = questionOrder[currentIndex]
 
   const handleShowAnswer = () => {
-    setShowAnswer(true);
-  };
+    setShowAnswer(true)
+  }
 
   const handleAnswer = (isCorrect) => {
     const result = {
@@ -164,47 +134,39 @@ const ColorFlashcard = () => {
       answer: currentQuestion.name,
       userAnswer: isCorrect ? '○' : '×',
       timestamp: new Date().toISOString()
-    };
-
-    const newResults = [...results, result];
-    setResults(newResults);
-
-    // localStorageに保存
+    }
+    const newResults = [...results, result]
+    setResults(newResults)
     try {
-      const key = `result:${Date.now()}_${currentQuestion.id}`;
-      localStorage.setItem(key, JSON.stringify(result));
+      const key = `result:${Date.now()}_${currentQuestion.id}`
+      localStorage.setItem(key, JSON.stringify(result))
     } catch (error) {
-      console.error('Error saving result:', error);
+      console.error('Error saving result:', error)
     }
-
-    // 次の問題へ、または完了
     if (currentIndex < questionOrder.length - 1) {
-      setCurrentIndex(currentIndex + 1);
-      setShowAnswer(false);
+      setCurrentIndex(currentIndex + 1)
+      setShowAnswer(false)
     } else {
-      setGameState('result');
-      setRankingTab('current');
+      setGameState('result')
+      setRankingTab('current')
     }
-  };
+  }
 
-  // localStorageのデータをクリア
   const handleClearHistory = () => {
     if (window.confirm('過去の学習履歴をすべて削除しますか？')) {
       try {
         Object.keys(localStorage)
           .filter(key => key.startsWith('result:'))
-          .forEach(key => localStorage.removeItem(key));
-        alert('履歴を削除しました');
-        if(gameState === 'result') {
-            setGameState('home');
+          .forEach(key => localStorage.removeItem(key))
+        alert('履歴を削除しました')
+        if (gameState === 'result') {
+          setGameState('home')
         }
       } catch (error) {
-        console.error('Error clearing history:', error);
+        console.error('Error clearing history:', error)
       }
     }
-  };
-
-  // --- レンダリング ---
+  }
 
   // 1. ホーム画面
   if (gameState === 'home') {
@@ -217,9 +179,7 @@ const ColorFlashcard = () => {
           </div>
 
           <div className="grid md:grid-cols-2 gap-8 mb-8">
-            {/* 左カラム: 設定 */}
             <div className="space-y-6">
-              {/* 出題数選択 */}
               <div>
                 <p className="text-sm text-gray-600 font-semibold mb-2">出題数</p>
                 <div className="flex bg-gray-100 p-1 rounded-lg">
@@ -243,7 +203,6 @@ const ColorFlashcard = () => {
                 </div>
               </div>
 
-              {/* グループ選択 */}
               <div>
                 <p className="text-sm text-gray-600 font-semibold mb-2">色グループ</p>
                 <div className="grid grid-cols-3 gap-2">
@@ -264,7 +223,6 @@ const ColorFlashcard = () => {
               </div>
             </div>
 
-            {/* 右カラム: アクション */}
             <div className="flex flex-col justify-center space-y-4">
               <div className="bg-blue-50 p-4 rounded-lg text-center mb-2">
                 <p className="text-sm text-blue-800 font-medium mb-1">現在の設定</p>
@@ -282,7 +240,7 @@ const ColorFlashcard = () => {
               >
                 <span>🚀</span> クイズ開始
               </button>
-              
+
               <button
                 onClick={goToRanking}
                 className="w-full py-3 bg-purple-600 text-white text-lg font-bold rounded-lg hover:bg-purple-700 transition-colors shadow-md flex items-center justify-center gap-2"
@@ -293,14 +251,14 @@ const ColorFlashcard = () => {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   // 2. 結果・ランキング画面
   if (gameState === 'result') {
-    const mistakeRanking = getMistakeRanking();
-    const groupMistakes = getGroupMistakeRanking(); // グループごとの間違いデータを取得
-    const isFromResult = results.length > 0;
+    const mistakeRanking = getMistakeRanking()
+    const groupMistakes = getGroupMistakeRanking()
+    const isFromResult = results.length > 0
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 p-4 md:p-8">
@@ -308,8 +266,7 @@ const ColorFlashcard = () => {
           <h2 className="text-3xl font-bold text-center mb-6 text-purple-800">
             {isFromResult ? 'お疲れ様でした！' : '学習データ'}
           </h2>
-          
-          {/* タブ切り替えボタン */}
+
           <div className="flex flex-wrap gap-2 mb-6 p-1 bg-gray-100 rounded-lg">
             {[
               { id: 'current', label: '今回の結果' },
@@ -331,7 +288,6 @@ const ColorFlashcard = () => {
           </div>
 
           <div className="min-h-[300px]">
-            {/* 1. 今回の結果 */}
             {rankingTab === 'current' && (
               <div className="mb-8">
                 <h3 className="text-xl font-semibold mb-4 text-gray-800">今回の結果</h3>
@@ -352,7 +308,7 @@ const ColorFlashcard = () => {
                     </div>
                     <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                       {results.map((result, index) => (
-                        <div 
+                        <div
                           key={index}
                           className="flex items-center justify-between p-3 bg-gray-50 rounded border"
                         >
@@ -372,7 +328,6 @@ const ColorFlashcard = () => {
               </div>
             )}
 
-            {/* 2. 総合ワーストランキング */}
             {rankingTab === 'mistake' && (
               <div className="mb-8">
                 <h3 className="text-xl font-semibold mb-4 text-gray-800">
@@ -385,17 +340,17 @@ const ColorFlashcard = () => {
                 ) : (
                   <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2">
                     {mistakeRanking.slice(0, 20).map((stat, index) => {
-                      const color = colors.find(c => c.id === stat.id);
-                      const correctRate = Math.round((stat.correct / stat.total) * 100);
+                      const color = colors.find(c => c.id === stat.id)
+                      const correctRate = Math.round((stat.correct / stat.total) * 100)
                       return (
-                        <div 
+                        <div
                           key={stat.id}
                           className="flex items-center gap-3 p-3 bg-gray-50 rounded border hover:bg-gray-100 transition-colors"
                         >
                           <div className="text-lg font-bold text-gray-400 w-6">
                             {index + 1}
                           </div>
-                          <div 
+                          <div
                             className="w-10 h-10 rounded shadow-sm flex-shrink-0 border border-gray-200"
                             style={{ backgroundColor: color?.colorcode }}
                           />
@@ -410,7 +365,7 @@ const ColorFlashcard = () => {
                             </div>
                             <div className="text-xs text-gray-600 flex items-center gap-2">
                               <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
-                                <div 
+                                <div
                                   className="h-full bg-blue-500"
                                   style={{ width: `${correctRate}%` }}
                                 />
@@ -427,14 +382,13 @@ const ColorFlashcard = () => {
                             </div>
                           </div>
                         </div>
-                      );
+                      )
                     })}
                   </div>
                 )}
               </div>
             )}
 
-            {/* 3. グループ別ワーストランキング（新規変更） */}
             {rankingTab === 'group' && (
               <div className="mb-8">
                 <h3 className="text-xl font-semibold mb-4 text-gray-800">
@@ -446,12 +400,10 @@ const ColorFlashcard = () => {
                   </div>
                 ) : (
                   <div className="space-y-8 max-h-[500px] overflow-y-auto pr-2">
-                    {/* colorGroups順にループして、データがあるものだけ表示 */}
                     {colorGroups
                       .filter(group => group !== 'all' && groupMistakes[group])
                       .map((group) => {
-                        const mistakes = groupMistakes[group];
-                        
+                        const mistakes = groupMistakes[group]
                         return (
                           <div key={group} className="border rounded-lg overflow-hidden">
                             <div className="bg-purple-100 px-4 py-2 font-bold text-purple-800 border-b flex justify-between">
@@ -462,18 +414,17 @@ const ColorFlashcard = () => {
                             </div>
                             <div className="bg-gray-50 p-2 space-y-2">
                               {mistakes.slice(0, 10).map((stat, idx) => {
-                                const color = colors.find(c => c.id === stat.id);
-                                const correctRate = Math.round((stat.correct / stat.total) * 100);
-                                
+                                const color = colors.find(c => c.id === stat.id)
+                                const correctRate = Math.round((stat.correct / stat.total) * 100)
                                 return (
-                                  <div 
+                                  <div
                                     key={stat.id}
                                     className="flex items-center gap-3 p-2 bg-white rounded border shadow-sm"
                                   >
                                     <div className="text-base font-bold text-gray-400 w-5 text-center">
                                       {idx + 1}
                                     </div>
-                                    <div 
+                                    <div
                                       className="w-8 h-8 rounded shadow-sm flex-shrink-0 border border-gray-200"
                                       style={{ backgroundColor: color?.colorcode }}
                                     />
@@ -491,12 +442,12 @@ const ColorFlashcard = () => {
                                       </span>
                                     </div>
                                   </div>
-                                );
+                                )
                               })}
                             </div>
                           </div>
-                        );
-                    })}
+                        )
+                      })}
                   </div>
                 )}
               </div>
@@ -510,7 +461,7 @@ const ColorFlashcard = () => {
             >
               {results.length > 0 ? 'もう一度同じ設定で解く' : 'クイズを始める'}
             </button>
-            
+
             <button
               onClick={returnHome}
               className="w-full py-3 bg-gray-200 text-gray-700 text-lg font-bold rounded-lg hover:bg-gray-300 transition-colors"
@@ -527,23 +478,23 @@ const ColorFlashcard = () => {
           </div>
         </div>
       </div>
-    );
+    )
   }
 
   // 3. クイズ画面
   if (!currentQuestion) {
-    return <div className="text-center p-8">読み込み中...</div>;
+    return <div className="text-center p-8">読み込み中...</div>
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-blue-50 flex items-center justify-center p-4 md:p-8">
       <div className="bg-white rounded-lg shadow-xl py-6 px-4 max-w-3xl w-full">
         <div className="flex justify-between items-center mb-4 text-xs md:text-sm text-gray-500">
-           <div>
-             {selectedGroup !== 'all' && <span className="mr-2 font-bold text-purple-600">[{selectedGroup}]</span>}
-             進捗: {currentIndex + 1} / {questionOrder.length}
-           </div>
-           <button onClick={returnHome} className="hover:text-gray-800">中断してホームへ</button>
+          <div>
+            {selectedGroup !== 'all' && <span className="mr-2 font-bold text-purple-600">[{selectedGroup}]</span>}
+            進捗: {currentIndex + 1} / {questionOrder.length}
+          </div>
+          <button onClick={returnHome} className="hover:text-gray-800">中断してホームへ</button>
         </div>
 
         <div className="mb-8">
@@ -551,7 +502,7 @@ const ColorFlashcard = () => {
             <div className="text-xl md:text-2xl font-bold text-gray-700">
               第{currentIndex + 1}問
             </div>
-            <div 
+            <div
               className="w-32 h-32 md:w-48 md:h-48 rounded-lg shadow-lg transition-all"
               style={{ backgroundColor: currentQuestion.colorcode }}
             />
@@ -623,7 +574,7 @@ const ColorFlashcard = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default ColorFlashcard;
+export default ColorFlashcard
