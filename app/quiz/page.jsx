@@ -7,7 +7,7 @@ export default function ColorFlashcard() {
   const colors = colorsData
 
   const [darkMode, setDarkMode] = useState(false)
-  const [quizType, setQuizType] = useState('flashcard') // 'flashcard' | 'choice'
+  const [quizType, setQuizType] = useState('flashcard') // 'flashcard' | 'choice' | 'description'
   const [gameState, setGameState] = useState('home')    // 'home' | 'quiz' | 'result'
   const [quizMode, setQuizMode] = useState(10)
   const [selectedGroup, setSelectedGroup] = useState('all')
@@ -158,7 +158,7 @@ export default function ColorFlashcard() {
     setShowAnswer(false)
     setResults([])
     setRankingTab('current')
-    if (quizType === 'choice') {
+    if (quizType === 'choice' || quizType === 'description') {
       setChoiceOptions(generateChoices(shuffled[0]))
       setSelectedChoice(null)
       setIsAnswered(false)
@@ -190,7 +190,7 @@ export default function ColorFlashcard() {
     }
   }
 
-  // --- 四択 handlers ---
+  // --- 四択 / 説明から解答 handlers ---
   const handleChoiceSelect = (choice) => {
     if (isAnswered) return
     setSelectedChoice(choice.id)
@@ -240,13 +240,14 @@ export default function ColorFlashcard() {
           {/* Quiz type tab */}
           <div className={`flex ${t.tabBg} p-1 rounded-lg mb-6`}>
             {[
-              { value: 'flashcard', label: '色名解答' },
-              { value: 'choice',   label: '四択解答' },
+              { value: 'flashcard',   label: '色名解答' },
+              { value: 'choice',      label: '四択解答' },
+              { value: 'description', label: '説明から解答' },
             ].map(({ value, label }) => (
               <button
                 key={value}
                 onClick={() => setQuizType(value)}
-                className={`flex-1 py-2 text-sm font-bold rounded-md transition-all ${
+                className={`flex-1 py-2 text-xs md:text-sm font-bold rounded-md transition-all ${
                   quizType === value ? t.tabActive : t.tabInactive
                 }`}
               >
@@ -500,8 +501,8 @@ export default function ColorFlashcard() {
     return <div className={`text-center p-8 ${t.textPrimary}`}>読み込み中...</div>
   }
 
-  // ---------- 四択モード ----------
-  if (quizType === 'choice') {
+  // ---------- 四択 / 説明から解答 共通レイアウト ----------
+  if (quizType === 'choice' || quizType === 'description') {
     const isCorrect = selectedChoice === currentQuestion.id
 
     return (
@@ -519,14 +520,33 @@ export default function ColorFlashcard() {
             </div>
           </div>
 
-          {/* Color patch */}
+          {/* 問題表示 */}
           <div className="flex flex-col items-center mb-6">
             <div className={`text-xl md:text-2xl font-bold mb-4 ${t.textPrimary}`}>第{currentIndex + 1}問</div>
-            <div className="w-36 h-36 md:w-52 md:h-52 rounded-xl shadow-lg" style={{ backgroundColor: currentQuestion.colorcode }} />
-            <p className={`mt-3 text-sm ${t.textSecondary}`}>この色の名前は？</p>
+
+            {quizType === 'choice' ? (
+              <>
+                <div className="w-36 h-36 md:w-52 md:h-52 rounded-xl shadow-lg" style={{ backgroundColor: currentQuestion.colorcode }} />
+                <p className={`mt-3 text-sm ${t.textSecondary}`}>この色の名前は？</p>
+              </>
+            ) : (
+              <div className={`w-full max-w-lg rounded-xl border-2 ${t.answerBg} p-5 md:p-6`}>
+                <p className={`text-xs font-semibold mb-3 ${t.textMuted}`}>次の説明に当てはまる色名を選んでください</p>
+                <p className={`text-base md:text-lg leading-relaxed font-medium ${t.answerTitle}`}>
+                  {currentQuestion.feature}
+                </p>
+                {/* 答えた後にカラーパッチも表示 */}
+                {isAnswered && (
+                  <div className="mt-4 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg shadow flex-shrink-0 border border-gray-300" style={{ backgroundColor: currentQuestion.colorcode }} />
+                    <span className={`text-sm ${t.answerValue}`}>{currentQuestion.colorgroup} / {currentQuestion.keito} / {currentQuestion.munsell}</span>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* 4 choices */}
+          {/* 4択ボタン */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             {choiceOptions.map(choice => {
               let state = 'default'
@@ -548,7 +568,7 @@ export default function ColorFlashcard() {
             })}
           </div>
 
-          {/* Feedback */}
+          {/* フィードバック */}
           {isAnswered && (
             <div className="mt-2">
               <div className={`text-center text-lg font-bold mb-4 ${isCorrect ? 'text-green-500' : 'text-red-500'}`}>
