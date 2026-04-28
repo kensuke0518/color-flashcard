@@ -1,4 +1,3 @@
-import Script from 'next/script'
 import './globals.css'
 
 export const metadata = {
@@ -25,18 +24,14 @@ export default function RootLayout({ children }) {
     <html lang="ja">
       <head>
         <meta name="theme-color" content="#7c3aed" />
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-5L9R20HDB4"
-          strategy="afterInteractive"
-        />
-        <Script id="gtag-init" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-5L9R20HDB4');
-          `}
-        </Script>
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-5L9R20HDB4" />
+        <script dangerouslySetInnerHTML={{ __html: `
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+          gtag('config', 'G-5L9R20HDB4');
+        `}} />
       </head>
       <body>{children}</body>
     </html>
