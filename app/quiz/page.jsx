@@ -17,9 +17,10 @@ export default function ColorFlashcard() {
   const [results,       setResults]       = useState([])
   const [rankingTab,    setRankingTab]    = useState('current')
   // 四択 / 説明
-  const [choiceOptions,  setChoiceOptions]  = useState([])
-  const [selectedChoice, setSelectedChoice] = useState(null) // null=未選択, -1=時間切れ, id=選択済
-  const [isAnswered,     setIsAnswered]     = useState(false)
+  const [choiceOptions,       setChoiceOptions]       = useState([])
+  const [selectedChoice,      setSelectedChoice]      = useState(null) // null=未選択, -1=時間切れ, id=選択済
+  const [isAnswered,          setIsAnswered]           = useState(false)
+  const [flashcardTimedOut,   setFlashcardTimedOut]   = useState(false)
   // タイマー設定
   const [timerSetting,   setTimerSetting]   = useState(0)    // 0=無限, 5|10|20|'custom'
   const [customTimerVal, setCustomTimerVal] = useState('15')
@@ -94,13 +95,8 @@ export default function ColorFlashcard() {
         const result = { id: q.id, answer: q.name, userAnswer: '×', timestamp: new Date().toISOString() }
         setResults(prev => [...prev, result])
         try { localStorage.setItem(`result:${Date.now()}_${q.id}`, JSON.stringify(result)) } catch {}
-        if (currentIndex < questionOrder.length - 1) {
-          setCurrentIndex(ci => ci + 1)
-          setShowAnswer(false)
-        } else {
-          setGameState('result')
-          setRankingTab('current')
-        }
+        setShowAnswer(true)
+        setFlashcardTimedOut(true)
       }
     } else {
       if (!isAnswered) {
@@ -163,25 +159,22 @@ export default function ColorFlashcard() {
     },
   }
 
-  // --- 円形タイマー ---
-  const TimerRing = ({ left, total }) => {
-    if (!total || left === null) return null
-    const r = 22
-    const circ = 2 * Math.PI * r
-    const pct = Math.max(0, left / total)
-    const offset = circ * (1 - pct)
-    const color = pct > 0.5 ? '#22c55e' : pct > 0.2 ? '#f97316' : '#ef4444'
-    const trackColor = dm ? '#374151' : '#e5e7eb'
+  // --- 横線タイマーバー ---
+  const TimerBar = () => {
+    if (!effectiveSecs || timeLeft === null) return null
+    const pct = Math.max(0, timeLeft / effectiveSecs) * 100
+    const color = pct > 50 ? '#22c55e' : pct > 20 ? '#f97316' : '#ef4444'
     return (
-      <div className="relative flex items-center justify-center w-14 h-14 flex-shrink-0">
-        <svg width="56" height="56" className="-rotate-90" viewBox="0 0 56 56">
-          <circle cx="28" cy="28" r={r} fill="none" stroke={trackColor} strokeWidth="4" />
-          <circle cx="28" cy="28" r={r} fill="none" stroke={color} strokeWidth="4"
-            strokeDasharray={circ} strokeDashoffset={offset}
-            style={{ transition: 'stroke-dashoffset 0.8s linear, stroke 0.5s ease' }}
+      <div className="mb-3">
+        <div className={`relative h-2 rounded-full overflow-hidden ${dm ? 'bg-gray-700' : 'bg-gray-200'}`}>
+          <div
+            className="absolute top-0 left-0 h-full rounded-full"
+            style={{ width: `${pct}%`, backgroundColor: color, transition: 'width 0.8s linear, background-color 0.5s ease' }}
           />
-        </svg>
-        <span className="absolute text-xs font-bold" style={{ color }}>{left}</span>
+        </div>
+        <div className="flex justify-end mt-1">
+          <span className="text-xs font-bold tabular-nums" style={{ color }}>{timeLeft}秒</span>
+        </div>
       </div>
     )
   }
@@ -248,6 +241,7 @@ export default function ColorFlashcard() {
     setQuestionOrder(shuffled)
     setCurrentIndex(0)
     setShowAnswer(false)
+    setFlashcardTimedOut(false)
     setResults([])
     setRankingTab('current')
     if (quizType !== 'flashcard') {
@@ -279,6 +273,18 @@ export default function ColorFlashcard() {
     if (currentIndex < questionOrder.length - 1) {
       setCurrentIndex(currentIndex + 1)
       setShowAnswer(false)
+      setFlashcardTimedOut(false)
+    } else {
+      setGameState('result')
+      setRankingTab('current')
+    }
+  }
+
+  const handleFlashcardTimedOutNext = () => {
+    if (currentIndex < questionOrder.length - 1) {
+      setCurrentIndex(currentIndex + 1)
+      setShowAnswer(false)
+      setFlashcardTimedOut(false)
     } else {
       setGameState('result')
       setRankingTab('current')
@@ -601,13 +607,12 @@ export default function ColorFlashcard() {
 
   // ---------- 共通ヘッダー ----------
   const QuizHeader = ({ label }) => (
-    <div className={`flex justify-between items-center mb-4 text-xs md:text-sm ${t.textSecondary}`}>
+    <div className={`flex justify-between items-center mb-2 text-xs md:text-sm ${t.textSecondary}`}>
       <div>
         {selectedGroup !== 'all' && <span className="mr-2 font-bold text-purple-500">[{selectedGroup}]</span>}
         進捗: {currentIndex + 1} / {questionOrder.length}
       </div>
       <div className="flex items-center gap-2">
-        <TimerRing left={timeLeft} total={effectiveSecs} />
         <DarkToggle />
         <button onClick={returnHome} className="hover:text-red-400 transition-colors ml-1">{label}</button>
       </div>
@@ -623,6 +628,7 @@ export default function ColorFlashcard() {
       <div className={`min-h-screen ${t.screenBg} flex items-center justify-center p-4 md:p-8`}>
         <div className={`${t.cardBg} rounded-lg shadow-xl py-6 px-4 max-w-3xl w-full`}>
           <QuizHeader label="中断" />
+          <TimerBar />
 
           <div className="flex flex-col items-center mb-6">
             <div className={`text-xl md:text-2xl font-bold mb-4 ${t.textPrimary}`}>第{currentIndex + 1}問</div>
@@ -690,6 +696,7 @@ export default function ColorFlashcard() {
     <div className={`min-h-screen ${t.screenBg} flex items-center justify-center p-4 md:p-8`}>
       <div className={`${t.cardBg} rounded-lg shadow-xl py-6 px-4 max-w-3xl w-full`}>
         <QuizHeader label="中断してホームへ" />
+        <TimerBar />
 
         <div className="mb-8">
           <div className="flex flex-col items-center justify-center gap-4 mb-6">
@@ -728,19 +735,31 @@ export default function ColorFlashcard() {
           </button>
         </div>
 
-        <div className="flex gap-4 justify-center">
-          {[
-            { label: '○', correct: true,  cls: 'bg-green-600 text-white hover:bg-green-700 shadow-md' },
-            { label: '×', correct: false, cls: 'bg-red-600 text-white hover:bg-red-700 shadow-md' },
-          ].map(({ label, correct, cls }) => (
-            <button key={label} onClick={() => handleAnswer(correct)} disabled={!showAnswer}
-              className={`flex-1 md:flex-none px-8 py-4 text-2xl font-bold rounded-lg transition-colors ${
-                !showAnswer ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : cls
-              }`}>
-              {label}
+        {flashcardTimedOut ? (
+          <div>
+            <div className="text-center text-lg font-bold text-red-500 mb-4">
+              ⏰ 時間切れ
+            </div>
+            <button onClick={handleFlashcardTimedOutNext}
+              className="w-full py-3 bg-blue-600 text-white text-lg font-bold rounded-lg hover:bg-blue-700 transition-colors shadow-md">
+              {currentIndex < questionOrder.length - 1 ? '次の問題へ →' : '結果を見る'}
             </button>
-          ))}
-        </div>
+          </div>
+        ) : (
+          <div className="flex gap-4 justify-center">
+            {[
+              { label: '○', correct: true,  cls: 'bg-green-600 text-white hover:bg-green-700 shadow-md' },
+              { label: '×', correct: false, cls: 'bg-red-600 text-white hover:bg-red-700 shadow-md' },
+            ].map(({ label, correct, cls }) => (
+              <button key={label} onClick={() => handleAnswer(correct)} disabled={!showAnswer}
+                className={`flex-1 md:flex-none px-8 py-4 text-2xl font-bold rounded-lg transition-colors ${
+                  !showAnswer ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : cls
+                }`}>
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
