@@ -374,7 +374,7 @@ export default function ColorFlashcard() {
           </div>
 
           {/* クイズタイプ */}
-          <div className={`flex ${t.tabBg} p-1 rounded-lg mb-6`}>
+          <div className={`flex ${t.tabBg} p-1 rounded-lg mb-2`}>
             {[
               { value: 'flashcard',   label: '色名解答' },
               { value: 'choice',      label: '四択解答' },
@@ -386,6 +386,25 @@ export default function ColorFlashcard() {
               </button>
             ))}
           </div>
+
+          {/* クイズタイプ説明 */}
+          {{
+            flashcard:   { icon: '🎴', text: '色のパッチを見て色名を思い浮かべ、正解を確認してから○/×で自己採点します。' },
+            choice:      { icon: '🔢', text: '色のパッチを見て、4つの選択肢の中から正しい色名を選びます。' },
+            description: { icon: '📖', text: '色の説明文を読んで、4つの選択肢の中から対応する色名を選びます。' },
+          }[quizType] && (
+            <div className={`flex items-start gap-2 px-3 py-2 rounded-lg mb-5 text-sm ${dm ? 'bg-gray-700 text-gray-300' : 'bg-purple-50 text-purple-800'}`}>
+              <span className="text-base leading-snug flex-shrink-0 mt-0.5">
+                {{ flashcard: '🎴', choice: '🔢', description: '📖' }[quizType]}
+              </span>
+              <span className="leading-snug">
+                {{ flashcard:   '色のパッチを見て色名を思い浮かべ、正解を確認してから○/×で自己採点します。',
+                   choice:      '色のパッチを見て、4つの選択肢の中から正しい色名を選びます。',
+                   description: '色の説明文を読んで、4つの選択肢の中から対応する色名を選びます。',
+                }[quizType]}
+              </span>
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             {/* Left: 設定 */}
