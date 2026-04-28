@@ -21,6 +21,8 @@ export default function ColorFlashcard() {
   const [selectedChoice,      setSelectedChoice]      = useState(null) // null=未選択, -1=時間切れ, id=選択済
   const [isAnswered,          setIsAnswered]           = useState(false)
   const [flashcardTimedOut,   setFlashcardTimedOut]   = useState(false)
+  // モーダル
+  const [modalColor,          setModalColor]          = useState(null)
   // タイマー設定
   const [timerSetting,   setTimerSetting]   = useState(0)    // 0=無限, 5|10|20|'custom'
   const [customTimerVal, setCustomTimerVal] = useState('15')
@@ -171,6 +173,52 @@ export default function ColorFlashcard() {
         </div>
         <div className="flex justify-end mt-1">
           <span className="text-xs font-bold tabular-nums" style={{ color }}>{timeLeft}秒</span>
+        </div>
+      </div>
+    )
+  }
+
+  // --- 色詳細モーダル ---
+  const ColorModal = () => {
+    if (!modalColor) return null
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        style={{ backgroundColor: 'rgba(0,0,0,0.65)' }}
+        onClick={() => setModalColor(null)}
+      >
+        <div
+          className={`${t.cardBg} rounded-2xl shadow-2xl w-full max-w-sm p-6 relative`}
+          onClick={e => e.stopPropagation()}
+        >
+          <button
+            onClick={() => setModalColor(null)}
+            className={`absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center font-bold text-lg transition-colors ${
+              dm ? 'bg-gray-700 text-gray-300 hover:bg-gray-600' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            }`}
+          >
+            ×
+          </button>
+
+          <div className="w-full h-36 rounded-xl shadow-lg mb-5" style={{ backgroundColor: modalColor.colorcode }} />
+
+          <h3 className={`text-2xl font-bold text-center mb-4 ${t.answerTitle}`}>{modalColor.name}</h3>
+
+          <div className="space-y-1 text-sm">
+            {[
+              { label: 'グループ',   value: modalColor.colorgroup },
+              { label: '系統色名',   value: modalColor.keito },
+              { label: 'マンセル値', value: modalColor.munsell },
+            ].map(row => (
+              <div key={row.label} className={`flex border-b ${t.answerBorder} py-1.5`}>
+                <span className={`font-semibold w-24 flex-shrink-0 ${t.answerLabel}`}>{row.label}</span>
+                <span className={t.answerValue}>{row.value}</span>
+              </div>
+            ))}
+            <div className="pt-2">
+              <p className={`leading-relaxed text-sm ${t.answerValue}`}>{modalColor.feature}</p>
+            </div>
+          </div>
         </div>
       </div>
     )
@@ -436,6 +484,7 @@ export default function ColorFlashcard() {
     const isFromResult   = results.length > 0
 
     return (
+      <>
       <div className={`min-h-screen ${t.screenBg} p-4 md:p-8`}>
         <div className={`max-w-3xl mx-auto ${t.cardBg} rounded-lg shadow-lg p-6 md:p-8`}>
 
@@ -502,7 +551,8 @@ export default function ColorFlashcard() {
                       const color = colors.find(c => c.id === stat.id)
                       const rate  = Math.round((stat.correct / stat.total) * 100)
                       return (
-                        <div key={stat.id} className={`flex items-center gap-3 p-3 ${t.rowBg} rounded border ${t.rowHover} transition-colors`}>
+                        <div key={stat.id} onClick={() => color && setModalColor(color)}
+                          className={`flex items-center gap-3 p-3 ${t.rowBg} rounded border ${t.rowHover} transition-colors cursor-pointer`}>
                           <div className={`text-lg font-bold w-6 ${t.textMuted}`}>{i + 1}</div>
                           <div className="w-10 h-10 rounded shadow-sm flex-shrink-0 border border-gray-300" style={{ backgroundColor: color?.colorcode }} />
                           <div className="flex-1 min-w-0">
@@ -549,7 +599,8 @@ export default function ColorFlashcard() {
                               const color = colors.find(c => c.id === stat.id)
                               const rate  = Math.round((stat.correct / stat.total) * 100)
                               return (
-                                <div key={stat.id} className={`flex items-center gap-3 p-2 ${t.cardBg} rounded border ${t.cardBorder} shadow-sm`}>
+                                <div key={stat.id} onClick={() => color && setModalColor(color)}
+                                  className={`flex items-center gap-3 p-2 ${t.cardBg} rounded border ${t.cardBorder} shadow-sm ${t.rowHover} transition-colors cursor-pointer`}>
                                   <div className={`text-base font-bold w-5 text-center ${t.textMuted}`}>{idx + 1}</div>
                                   <div className="w-8 h-8 rounded shadow-sm flex-shrink-0 border border-gray-300" style={{ backgroundColor: color?.colorcode }} />
                                   <div className="flex-1 min-w-0">
@@ -583,6 +634,8 @@ export default function ColorFlashcard() {
           </div>
         </div>
       </div>
+      <ColorModal />
+      </>
     )
   }
 
