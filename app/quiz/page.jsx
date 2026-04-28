@@ -389,6 +389,8 @@ export default function ColorFlashcard() {
               × {quizMode === 'all' ? '全問' : `${quizMode}問`}
               {' / '}
               {timerSetting === 0 ? '無制限' : timerSetting === 'custom' ? `${customTimerVal || '?'}秒` : `${timerSetting}秒`}
+              {' / '}
+              {{ flashcard: '色名解答', choice: '四択解答', description: '説明から解答' }[quizType]}
             </p>
           </div>
 
