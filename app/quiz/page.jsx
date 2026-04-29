@@ -460,7 +460,7 @@ export default function ColorFlashcard() {
               <p className={`text-sm font-semibold mb-2 ${t.textSecondary}`}>解答時間</p>
               <div className={`flex ${t.tabBg} p-1 rounded-lg mb-2`}>
                 {[
-                  { label: '無限', value: 0 },
+                  { label: '無制限', value: 0 },
                   { label: '5秒',  value: 5 },
                   { label: '10秒', value: 10 },
                   { label: '20秒', value: 20 },
