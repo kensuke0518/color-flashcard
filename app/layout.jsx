@@ -1,6 +1,7 @@
 import './globals.css'
 
 export const metadata = {
+  metadataBase: new URL('https://shikisai-learning.org'),
   title: '色彩学習',
   description: '色彩学習 — 慣用色名をフラッシュカード形式で覚える無料学習アプリ。色を見て名前を答えるクイズ形式で、マンセル値・系統色名・特徴も確認できます。',
   keywords: ['色彩学習', '色彩検定', '慣用色名', 'カラーフラッシュカード', '色名暗記', 'マンセル値', '色彩検定1級', '色彩検定2級', '色彩検定3級'],

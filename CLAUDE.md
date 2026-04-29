@@ -4,7 +4,7 @@
 
 色彩検定の慣用色名を学習するフラッシュカードアプリ。
 
-- **本番URL**: https://shikisai-learning.pages.dev（独自ドメイン取得後に更新予定）
+- **本番URL**: https://shikisai-learning.org
 - **スタック**: Next.js 15 App Router / 静的エクスポート / Tailwind CSS v4 / Cloudflare Pages
 - **Google Analytics**: G-5L9R20HDB4
 
