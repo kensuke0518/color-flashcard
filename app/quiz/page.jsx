@@ -143,6 +143,11 @@ export default function ColorFlashcard() {
     btnSecondary: dm ? 'bg-gray-700 text-gray-200 hover:bg-gray-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
     btnClear:     dm ? 'text-gray-600 hover:text-red-400' : 'text-gray-400 hover:text-red-500',
     inputBorder:  dm ? 'bg-gray-700 border-gray-600 text-white' : 'bg-white border-gray-300 text-gray-800',
+    quizGradient: {
+      flashcard:   'linear-gradient(to right, rgba(255,162,83,0.9) 60%, rgba(231,86,133,0.9))',
+      choice:      'linear-gradient(to right, rgba(231,86,133,0.9) 60%, rgba(152,74,160,0.9))',
+      description: 'linear-gradient(to right, rgba(111,169,226,0.9) 60%, rgba(101,193,149,0.9))',
+    },
     groupBtn: (active) => active
       ? dm ? 'bg-purple-800 border-purple-500 text-purple-200' : 'bg-purple-100 border-purple-500 text-purple-700'
       : dm ? 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50',
@@ -382,15 +387,17 @@ export default function ColorFlashcard() {
           </div>
 
           {/* 現在の設定 + クイズ開始 */}
-          <div className={`${t.sectionBg} p-4 rounded-lg text-center mb-3`}>
-            <p className={`text-sm font-medium mb-1 ${t.sectionTitle}`}>現在の設定</p>
-            <p className={`text-2xl font-bold ${t.sectionValue}`}>{selectedGroup === 'all' ? '全グループ' : selectedGroup}</p>
-            <p className={t.sectionSub}>
+          <div className="p-4 rounded-lg text-center mb-3" style={{ background: t.quizGradient[quizType] }}>
+            <p className="text-sm font-medium mb-1" style={{ color: '#fff' }}>現在の設定</p>
+            <p className="text-2xl font-bold" style={{ color: '#fff' }}>
               {{ flashcard: '色名解答', choice: '四択解答', description: '説明から解答' }[quizType]}
-              {' / × '}
+            </p>
+            <p style={{ color: '#fff' }}>
               {quizMode === 'all' ? '全問' : `${quizMode}問`}
               {' / '}
               {timerSetting === 0 ? '無制限' : timerSetting === 'custom' ? `${customTimerVal || '?'}秒` : `${timerSetting}秒`}
+              {' / '}
+              {selectedGroup === 'all' ? '全グループ' : selectedGroup}
             </p>
           </div>
 
@@ -407,7 +414,8 @@ export default function ColorFlashcard() {
               { value: 'description', label: '説明から解答' },
             ].map(({ value, label }) => (
               <button key={value} onClick={() => setQuizType(value)}
-                className={`flex-1 py-2 text-xs md:text-sm font-bold rounded-md transition-all ${quizType === value ? t.tabActive : t.tabInactive}`}>
+                className={`flex-1 py-2 text-xs md:text-sm font-bold rounded-md transition-all ${quizType === value ? 'text-white shadow' : t.tabInactive}`}
+                style={quizType === value ? { background: t.quizGradient[value] } : {}}>
                 {label}
               </button>
             ))}
