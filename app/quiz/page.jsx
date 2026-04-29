@@ -366,7 +366,7 @@ export default function ColorFlashcard() {
   // ========== HOME SCREEN ==========
   if (gameState === 'home') {
     return (
-      <div className={`min-h-screen ${t.screenBg} flex items-center justify-center py-4`}>
+      <div className={`min-h-screen ${t.screenBg} flex items-center justify-center`}>
         <div className={`${t.cardBg} rounded-lg shadow-xl p-8 max-w-2xl w-full`}>
 
           {/* 学習データ + ダークモード（見出し上） */}
@@ -514,7 +514,7 @@ export default function ColorFlashcard() {
 
     return (
       <>
-      <div className={`min-h-screen ${t.screenBg} py-4 md:py-8`}>
+      <div className={`min-h-screen ${t.screenBg}`}>
         <div className={`max-w-3xl mx-auto ${t.cardBg} rounded-lg shadow-lg p-6 md:p-8`}>
 
           <div className="flex items-center justify-between mb-6">
@@ -693,7 +693,7 @@ export default function ColorFlashcard() {
     const isCorrect = !timedOut && selectedChoice === currentQuestion.id
 
     return (
-      <div className={`min-h-screen ${t.screenBg} flex items-center justify-center py-4 md:py-8`}>
+      <div className={`min-h-screen ${t.screenBg} flex items-center justify-center`}>
         <div className={`${t.cardBg} rounded-lg shadow-xl py-6 px-4 max-w-3xl w-full`}>
           <QuizHeader label="中断" />
           <TimerBar />
@@ -761,7 +761,7 @@ export default function ColorFlashcard() {
 
   // ---------- フラッシュカード ----------
   return (
-    <div className={`min-h-screen ${t.screenBg} flex items-center justify-center py-4 md:py-8`}>
+    <div className={`min-h-screen ${t.screenBg} flex items-center justify-center`}>
       <div className={`${t.cardBg} rounded-lg shadow-xl py-6 px-4 max-w-3xl w-full`}>
         <QuizHeader label="中断してホームへ" />
         <TimerBar />
