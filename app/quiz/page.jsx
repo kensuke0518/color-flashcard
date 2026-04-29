@@ -660,6 +660,9 @@ export default function ColorFlashcard() {
             <button onClick={handleClearHistory} className={`w-full py-2 text-sm transition-colors ${t.btnClear}`}>
               学習履歴をクリアする
             </button>
+            <p className={`text-xs leading-relaxed mt-2 ${t.textMuted}`}>
+              ※学習データの記録には、ローカルストレージを用いています。端末の変更やブラウザのクリアなどでデータが失われてしまいますのでご留意ください。
+            </p>
           </div>
         </div>
       </div>
