@@ -397,7 +397,7 @@ export default function ColorFlashcard() {
               {' / '}
               {timerSetting === 0 ? '無制限' : timerSetting === 'custom' ? `${customTimerVal || '?'}秒` : `${timerSetting}秒`}
               {' / '}
-              {selectedGroup === 'all' ? '全グループ' : selectedGroup}
+              {selectedGroup === 'all' ? '全グループ' : `${selectedGroup}${colors.filter(c => c.colorgroup === selectedGroup).length}個`}
             </p>
           </div>
 
