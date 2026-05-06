@@ -277,7 +277,7 @@ export default function ColorFlashcard() {
 
   // --- 選択肢生成 ---
   const generateChoices = (correct) => {
-    const wrong = [...colors.filter(c => c.id !== correct.id)].sort(() => Math.random() - 0.5).slice(0, 3)
+    const wrong = [...colors.filter(c => c.id !== correct.id)].sort(() => Math.random() - 0.5).slice(0, 7)
     return [...wrong, correct].sort(() => Math.random() - 0.5)
   }
 
@@ -390,7 +390,7 @@ export default function ColorFlashcard() {
           <div className="p-4 rounded-lg text-center mb-3" style={{ background: t.quizGradient[quizType] }}>
             <p className="text-sm font-medium mb-1" style={{ color: '#fff' }}>現在の設定</p>
             <p className="text-2xl font-bold" style={{ color: '#fff' }}>
-              {{ flashcard: '色名解答', choice: '四択解答', description: '説明から解答' }[quizType]}
+              {{ flashcard: '色名解答', choice: '選択解答', description: '説明から解答' }[quizType]}
             </p>
             <p style={{ color: '#fff' }}>
               {quizMode === 'all' ? '全問' : `${quizMode}問`}
@@ -410,7 +410,7 @@ export default function ColorFlashcard() {
           <div className={`flex ${t.tabBg} p-1 rounded-lg mb-2`}>
             {[
               { value: 'flashcard',   label: '色名解答' },
-              { value: 'choice',      label: '四択解答' },
+              { value: 'choice',      label: '選択解答' },
               { value: 'description', label: '説明から解答' },
             ].map(({ value, label }) => (
               <button key={value} onClick={() => setQuizType(value)}
@@ -424,8 +424,8 @@ export default function ColorFlashcard() {
           {/* クイズタイプ説明 */}
           {{
             flashcard:   { icon: '🎴', text: '色のパッチを見て色名を思い浮かべ、正解を確認してから○/×で自己採点します。' },
-            choice:      { icon: '🔢', text: '色のパッチを見て、4つの選択肢の中から正しい色名を選びます。' },
-            description: { icon: '📖', text: '色の説明文を読んで、4つの選択肢の中から対応する色名を選びます。' },
+            choice:      { icon: '🔢', text: '色のパッチを見て、8つの選択肢の中から正しい色名を選びます。' },
+            description: { icon: '📖', text: '色の説明文を読んで、8つの選択肢の中から対応する色名を選びます。' },
           }[quizType] && (
             <div className={`flex items-start gap-2 px-3 py-2 rounded-lg mb-5 text-sm ${dm ? 'bg-gray-700 text-gray-300' : 'bg-purple-50 text-purple-800'}`}>
               <span className="text-base leading-snug flex-shrink-0 mt-0.5">
@@ -433,8 +433,8 @@ export default function ColorFlashcard() {
               </span>
               <span className="leading-snug">
                 {{ flashcard:   '色のパッチを見て色名を思い浮かべ、正解を確認してから○/×で自己採点します。',
-                   choice:      '色のパッチを見て、4つの選択肢の中から正しい色名を選びます。',
-                   description: '色の説明文を読んで、4つの選択肢の中から対応する色名を選びます。',
+                   choice:      '色のパッチを見て、8つの選択肢の中から正しい色名を選びます。',
+                   description: '色の説明文を読んで、8つの選択肢の中から対応する色名を選びます。',
                 }[quizType]}
               </span>
             </div>
@@ -723,8 +723,7 @@ export default function ColorFlashcard() {
             )}
           </div>
 
-          {/* 4択ボタン */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
             {choiceOptions.map(choice => {
               let state = 'default'
               if (isAnswered || timedOut) {
